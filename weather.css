@@ -1,0 +1,156 @@
+body {
+    background-color: #444444;
+    font-family: "Helvetica Neue", Helvetica, "Open Sans", Arial;
+    overflow: hidden;
+}
+
+.maincontainer {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    gap: 5px;
+    padding-left: 0px;
+    padding-right: 5px;
+    height: 100vh;
+}
+
+.item {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 40px;
+    color: #00FFFF;
+}
+
+.daycontainer {
+    display: inline-grid;
+}
+
+.forecast {
+    color: white;
+}
+
+.condition {
+    grid-row: 2 / span 2;
+    grid-column: 1;
+    padding-right: 0px;
+}
+
+.conditionpic {
+    height: 120px;
+}
+
+.conditiontoday {
+    height: 140px;
+    padding-right: 0px;
+}
+
+.invert {
+    filter: invert(100%);
+    width: 50px;
+}
+
+.noinvert {
+    width: 50px;
+}
+
+.propscontainer {
+    grid-row: 1;
+    grid-column: 1 / span 2;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.wind {
+    justify-content: flex-end;
+    padding-right: 5px;
+}
+
+.speed {
+    justify-content: flex-start;
+}
+
+.sunriseicon {
+    justify-content: flex-end;
+    padding-right: 0px;
+}
+
+.sunrisetext {
+    justify-content: flex-start;
+}
+
+.sunseticon {
+    justify-content: flex-end;
+    padding-right: 0px;
+}
+
+.sunsettext {
+    justify-content: flex-start;
+}
+
+.conditiontoday {
+    grid-row: 2;
+    grid-column: 1;
+}
+
+.temp {
+    grid-row: 2;
+    grid-column: 2;
+    font-size: 90px;
+    display: inline-grid;
+    color: #00FFFF;
+    text-align: right;
+}
+
+.time {
+    grid-column: span 2;
+    padding-bottom: 10px;
+    color: white;
+    font-size: 30px;
+}
+
+span {
+    font-size: 40px;
+    color: #00FFFF;
+}
+
+.tempsplit {
+    font-size: 35px;
+}
+
+.t1 {
+    grid-row: 1 / span 2;
+    align-self: center;
+    display: inline-grid;
+    text-align: right;
+}
+
+.deg {
+    grid-row: 1;
+    grid-column: 2;
+    align-self: end;
+    text-align: left;
+}
+
+.t2 {
+    grid-row: 2;
+    grid-column: 2;
+    align-self: start;
+    text-align: left;
+}
+
+.tempmax {
+    grid-row: 2;
+    grid-column: 2;
+    align-items: flex-end;
+
+}
+
+.tempmin {
+    grid-row: 3;
+    grid-column: 2;
+    align-items: flex-start;
+    color: #7FFFD4;
+}
