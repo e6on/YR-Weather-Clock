@@ -31,15 +31,15 @@ function getValue(obj, key) {
 // Get today's date in the correct format.
 let today = new Date();
 //today.setMonth(2, 31);
-let tomorrow = new Date();
-tomorrow.setDate(today.getDate() + 1);
-//tomorrow.setMonth(3, 1);
+let yesterday = new Date();
+yesterday.setDate(today.getDate() - 1);
+//yesterday.setMonth(3, 1);
 var forISO_today = new Date(today.getTime() - today.getTimezoneOffset() * 60000);
-var forISO_tomorrow = new Date(tomorrow.getTime() - tomorrow.getTimezoneOffset() * 60000);
+var forISO_yesterday = new Date(yesterday.getTime() - yesterday.getTimezoneOffset() * 60000);
 today = forISO_today.toISOString(); // "2023-04-23T00:00:00.000Z"
-tomorrow = forISO_tomorrow.toISOString(); // "2023-04-24T00:00:00.000Z"
+yesterday = forISO_yesterday.toISOString(); // "2023-04-24T00:00:00.000Z"
 let cal_event = "";
-//console.log(today, tomorrow);
+//console.log(today, yesterday);
 
 // Function to start the Google Calendar API
 function start() {
@@ -52,7 +52,7 @@ function start() {
         //console.log(today);
         return gapi.client.calendar.events.list({
             'calendarId': 'et.ee#holiday@group.v.calendar.google.com', // Use your calendar ID.
-            'timeMin': today,
+            'timeMin': yesterday,
             'timeMax': today,
             'showDeleted': false,
             'singleEvents': true,
@@ -60,7 +60,7 @@ function start() {
         });
     }).then(function (response) {
         //console.log(response.result.items); // Do what you need with these events.
-        //console.log(getValue(response.result.items, "summary"));
+        console.log(getValue(response.result.items, "summary"));
         if (getValue(response.result.items, "summary") !== undefined) { cal_event = getValue(response.result.items, "summary"); }
     }, function (reason) {
         console.log('Error: ' + reason.result.error.message);

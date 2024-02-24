@@ -13,7 +13,8 @@ var forISO_date = new Date(today.getTime() - today.getTimezoneOffset() * 60000);
 function nextDate(days) {
     const nextDay = new Date(forISO_date);
     nextDay.setDate(forISO_date.getDate() + days);
-    return nextDay.toISOString().slice(0, nextDay.toISOString().indexOf("T") + 1); //2024-02-01T
+    console.log("Next date " + nextDay.toISOString().slice(0, nextDay.toISOString().indexOf("T") + 1));
+    return nextDay.toISOString().slice(0, nextDay.toISOString().indexOf("T") + 1); //2024-02-01T   
 }
 
 function addZero(i) {
@@ -31,6 +32,7 @@ function formatDate(d) {
     const month = fixed_date.getMonth();
     const months = ["JAAN", "VEEBR", "MÄRTS", "APR", "MAI", "JUUNI", "JUULI", "AUG", "SEPT", "OKT", "NOV", "DETS"];
     //console.log(days[day] + " " + date + " " + months[month]);
+    console.log("Formatting to date " + days[day] + " " + date + " " + months[month]);
     return "&nbsp;<span>" + days[day] + "</span>&nbsp;&nbsp;" + date + "&nbsp;" + months[month];
 }
 
@@ -130,16 +132,17 @@ $.getJSON(url + `?lat=` + lat + `&lon=` + lon, function (data, status) {
         var tomorrow_sun_times = SunCalc.getTimes(tomorrow, lat, lon);
         // format sunrise time from the Date object
         var tomorrow_sunriseStr = tomorrow_sun_times.sunrise.getHours() + ':' + tomorrow_sun_times.sunrise.getMinutes();
-        //console.log(today_sunriseStr, today_sunsetStr, tomorrow_sunriseStr);
         var sunrise_hour = today_sun_times.sunrise.getHours();
         var sunrise_minute = today_sun_times.sunrise.getMinutes();
         var sunset_hour = today_sun_times.sunset.getHours();
         //console.log(sunrise_hour, sunset_hour);
+        $(".forecast").html("Getting sun times... " + today_sunriseStr + " " + today_sunsetStr + " " + tomorrow_sunriseStr);
+        console.log("Getting sun times... " + today_sunriseStr + " " + today_sunsetStr + " " + tomorrow_sunriseStr);
 
-        let today_sunrise = "<div class='item sunriseicon'><img class='noinvert' src='./images/sunrise.svg' alt='sunrise' /></div><div class='item sunrisetext'>" + today_sunriseStr + "</div>";
-        let today_sunset = "<div class='item sunseticon'><img class='noinvert' src='./images/sunset.svg' alt='sunset' /></div><div class='item sunsettext'>" + today_sunsetStr + "</div>";
-        let tomorrow_sunrise = "<div class='item sunriseicon'><img class='noinvert' src='./images/sunrise.svg' alt='sunrise' /></div><div class='item sunrisetext'>" + tomorrow_sunriseStr + "</div>";
-        let sun = today_sunrise;
+        var today_sunrise = "<div class='item sunriseicon'><img class='noinvert' src='./images/sunrise.svg' alt='sunrise' /></div><div class='item sunrisetext'>" + today_sunriseStr + "</div>";
+        var today_sunset = "<div class='item sunseticon'><img class='noinvert' src='./images/sunset.svg' alt='sunset' /></div><div class='item sunsettext'>" + today_sunsetStr + "</div>";
+        var tomorrow_sunrise = "<div class='item sunriseicon'><img class='noinvert' src='./images/sunrise.svg' alt='sunrise' /></div><div class='item sunrisetext'>" + tomorrow_sunriseStr + "</div>";
+        var sun = today_sunrise;
 
         if (sunrise_hour < today.getHours()) {
             if (sunset_hour > today.getHours()) {
@@ -152,6 +155,8 @@ $.getJSON(url + `?lat=` + lat + `&lon=` + lon, function (data, status) {
         }
 
         // Get instant and forecast for today
+        $(".forecast").html("Getting forecast for " + nextDate(0));
+        console.log("Getting forecast for " + nextDate(0));
         var today_date = nextDate(0) + addZero(today.getHours()); // 2024-02-02T14
         var today_values_instant = getValues(data, today_date, "instant", "air_temperature", "wind_speed");
         var today_values1h = getValues(data, today_date, "next_1_hours", "symbol_code");
@@ -159,7 +164,7 @@ $.getJSON(url + `?lat=` + lat + `&lon=` + lon, function (data, status) {
 
         // format todays instant temperature display
         var today_temp = getValue(today_values_instant, "air_temperature");
-        let tempString = today_temp.toString();
+        var tempString = today_temp.toString();
         const tempArray = tempString.split(".");
         var todayTempSplit1 = tempArray[0];
         if (tempArray.length > 1) {
@@ -208,6 +213,8 @@ $.getJSON(url + `?lat=` + lat + `&lon=` + lon, function (data, status) {
         var forecast_days = forecast_time + forecast_condition + forecast_air_temperature_max + forecast_air_temperature_min;
         var today_text = today_text + days_start + forecast_days + days_end;
 
+        $(".forecast").html("Getting forecasts for " + numOfdays + " days");
+        console.log("Getting forecasts for " + numOfdays + " days");
         for (var j = 1; j <= numOfdays; j++) {
             var date = nextDate(j) + "06"; // 2024-02-02T06
 
@@ -242,9 +249,11 @@ $.getJSON(url + `?lat=` + lat + `&lon=` + lon, function (data, status) {
             var forecast_days = forecast_time + forecast_condition + forecast_air_temperature_max + forecast_air_temperature_min;
             var forecast_text = days_start + forecast_days + days_end;
 
-            //console.log('no match');
+            console.log('Generating forecast for ' + date);
+            $(".forecast").html('Generating forecast for ' + date);
             forecast = forecast + forecast_text;
             $(".forecast").html(forecast);
+
 
         }
         forecast = today_text + forecast;
@@ -255,6 +264,6 @@ $.getJSON(url + `?lat=` + lat + `&lon=` + lon, function (data, status) {
         var err = `ERROR: ${status}`;
         $(".forecast").html(err);
     }
-
+    console.log("Weather refreshed at " + today);
 });
-console.log("Weather refreshed at " + today);
+
