@@ -143,9 +143,9 @@ $.getJSON(url + `?lat=` + lat + `&lon=` + lon, function (data, status) {
         $(".forecast").html("Getting sun times... " + today_sunriseStr + " " + today_sunsetStr + " " + tomorrow_sunriseStr);
         console.log("Getting sun times... " + today_sunriseStr + " " + today_sunsetStr + " " + tomorrow_sunriseStr);
 
-        var today_sunrise = "<div class='item sunriseicon'><img class='noinvert' src='./images/common/sunrise.svg' alt='sunrise' /></div><div class='item sunrisetext'>" + today_sunriseStr + "</div>";
-        var today_sunset = "<div class='item sunseticon'><img class='noinvert' src='./images/common/sunset.svg' alt='sunset' /></div><div class='item sunsettext'>" + today_sunsetStr + "</div>";
-        var tomorrow_sunrise = "<div class='item sunriseicon'><img class='noinvert' src='./images/common/sunrise.svg' alt='sunrise' /></div><div class='item sunrisetext'>" + tomorrow_sunriseStr + "</div>";
+        var today_sunrise = "<div class='item sunicon'><img class='noinvert' src='./images/common/sunrise.svg' alt='sunrise' /></div><div class='item suntext'>" + today_sunriseStr + "</div>";
+        var today_sunset = "<div class='item sunicon'><img class='noinvert' src='./images/common/sunset.svg' alt='sunset' /></div><div class='item suntext'>" + today_sunsetStr + "</div>";
+        var tomorrow_sunrise = "<div class='item sunicon'><img class='noinvert' src='./images/common/sunrise.svg' alt='sunrise' /></div><div class='item suntext'>" + tomorrow_sunriseStr + "</div>";
         var sun = today_sunrise;
 
         if (sunrise_hour < today.getHours()) {
@@ -202,8 +202,10 @@ $.getJSON(url + `?lat=` + lat + `&lon=` + lon, function (data, status) {
         var today_condition = "<div class='item'><img class='conditiontoday' src='./images/" + theme + "/" + today_symbol + ext + "' alt='" + today_symbol + "' /></div>";
         var today_temperature = "<div class='temp'><div class='t1'>" + todayTempSplit1 + "</div>" + todayTempSplit2 + "</div>";
         var windicon = "wind";
+        var thunder = "";
+        if (today_symbol.includes("thunder")) { thunder = "<img class='noinvert image2' src='./images/common/thunder.svg' alt='thunder' />" }
         if (today_wind_speed < 13) { windicon = "wind-" + parseInt(today_wind_speed) }
-        var today_wind = "<div class='item wind'><img class='noinvert' src='./images/common/" + windicon + ".svg' alt='wind' /></div><div class='item speed'>" + today_wind_speed + "</div>";
+        var today_wind = "<div class='item wind parent'><img class='noinvert image1' src='./images/common/" + windicon + ".svg' alt='wind' />" + thunder + "</div><div class='item speed'>" + today_wind_speed + "</div>";
         var today_start = "<div class='daycontainer'>";
         var today_end = "</div>";
         var propsstart = "<div class='propscontainer'>";
