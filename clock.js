@@ -1,79 +1,32 @@
-// Function to load the Google API library
-function loadGapi() {
-    return new Promise((resolve, reject) => {
-        const script = document.createElement('script');
-        script.src = 'https://apis.google.com/js/platform.js';
-        script.onload = () => {
-            gapi.load('client', resolve);
-        };
-        script.onerror = reject;
-        document.body.appendChild(script);
-    });
-}
+// Get today's date in the correct format.
+let today = new Date();
+//today.setMonth(7, 23);
+var forISO_today = new Date(today.getTime() - today.getTimezoneOffset() * 60000);
+today = forISO_today.toISOString().slice(0, forISO_today.toISOString().indexOf("T")); // 2023-04-23
+let cal_event = "";
+console.log(today);
 
-function getValue(obj, key) {
-    let value;
-    for (let k in obj) {
-        if (k === key) {
-            return obj[k];
-        }
-        if (obj[k] && typeof obj[k] === 'object') {
-            value = getValue(obj[k], key);
-            //console.log(value);
-            if (value !== undefined) {
-                return value;
+// Get holidays from https://xn--riigiphad-v9a.ee/ using https://corsproxy.io
+function getPyhad(date) {
+    var xhr = new XMLHttpRequest();
+    xhr.open('GET', 'https://corsproxy.io/?https://xn--riigiphad-v9a.ee/et/koik?output=json', true);
+    xhr.onreadystatechange = function () {
+        if (xhr.readyState == 4 && xhr.status == 200) {
+            var holidays = JSON.parse(xhr.responseText);
+            var holiday = holidays.find(holiday => holiday.date === date);
+            if (holiday) {
+                cal_event = holiday.title;
+                console.log(cal_event);
+            } else {
+                console.log('No holiday found on this date');
             }
         }
     }
-    return value;
+    xhr.send();
 }
-
-// Get today's date in the correct format.
-let today = new Date();
-//today.setMonth(2, 31);
-let yesterday = new Date();
-yesterday.setDate(today.getDate() - 1);
-//yesterday.setMonth(3, 1);
-var forISO_today = new Date(today.getTime() - today.getTimezoneOffset() * 60000);
-var forISO_yesterday = new Date(yesterday.getTime() - yesterday.getTimezoneOffset() * 60000);
-today = forISO_today.toISOString(); // "2023-04-23T00:00:00.000Z"
-yesterday = forISO_yesterday.toISOString(); // "2023-04-24T00:00:00.000Z"
-let cal_event = "";
-//console.log(today, yesterday);
-
-// Function to start the Google Calendar API
-function start() {
-    // Initialize the client with API key and People API version.
-    gapi.client.init({
-        apiKey: 'API KEY',
-        discoveryDocs: ["https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest"],
-    }).then(function () {
-        // Use Google's "apis-explorer" for research: https://developers.google.com/apis-explorer/#s/calendar/v3/
-        //console.log(today);
-        return gapi.client.calendar.events.list({
-            'calendarId': 'et.ee#holiday@group.v.calendar.google.com', // Use your calendar ID.
-            'timeMin': yesterday,
-            'timeMax': today,
-            'showDeleted': false,
-            'singleEvents': true,
-            'orderBy': 'startTime'
-        });
-    }).then(function (response) {
-        //console.log(response.result.items); // Do what you need with these events.
-        console.log(getValue(response.result.items, "summary"));
-        if (getValue(response.result.items, "summary") !== undefined) { cal_event = getValue(response.result.items, "summary"); }
-    }, function (reason) {
-        console.log('Error: ' + reason.result.error.message);
-    });
-};
-
-// Load the Google API library and start the Google Calendar API
-loadGapi().then(start).catch(console.error);
-
 
 function updateClock() {
     var now = new Date();
-
     var hours = addZeroPadding(now.getHours());
     var minutes = addZeroPadding(now.getMinutes());
     var seconds = addZeroPadding(now.getSeconds());
@@ -97,5 +50,7 @@ function addZeroPadding(num) {
     return (num < 10 ? '0' : '') + num;
 }
 
+// Get holiday
+getPyhad(today);
 // Start the clock
 updateClock();
