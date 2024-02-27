@@ -4,7 +4,6 @@ let today = new Date();
 var forISO_today = new Date(today.getTime() - today.getTimezoneOffset() * 60000);
 today = forISO_today.toISOString().slice(0, forISO_today.toISOString().indexOf("T")); // 2023-04-23
 let cal_event = "";
-console.log(today);
 
 // Get holidays from https://xn--riigiphad-v9a.ee/ using https://corsproxy.io
 function getPyhad(date) {
@@ -16,9 +15,9 @@ function getPyhad(date) {
             var holiday = holidays.find(holiday => holiday.date === date);
             if (holiday) {
                 cal_event = holiday.title;
-                console.log(cal_event);
+                console.log(today, '-', cal_event);
             } else {
-                console.log('No holiday found on this date');
+                console.log(today, '- No holiday found on this date');
             }
         }
     }
