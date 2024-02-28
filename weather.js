@@ -140,12 +140,12 @@ $.getJSON(url + `?lat=` + lat + `&lon=` + lon, function (data, status) {
         var sunrise_minute = today_sun_times.sunrise.getMinutes();
         var sunset_hour = today_sun_times.sunset.getHours();
         //console.log(sunrise_hour, sunset_hour);
-        $(".forecast").html("Getting sun times... " + today_sunriseStr + " " + today_sunsetStr + " " + tomorrow_sunriseStr);
+        $(".maincontainer").html("Getting sun times... " + today_sunriseStr + " " + today_sunsetStr + " " + tomorrow_sunriseStr);
         console.log("Getting sun times... " + today_sunriseStr + " " + today_sunsetStr + " " + tomorrow_sunriseStr);
 
-        var today_sunrise = "<div class='item sunicon'><img class='noinvert' src='./images/common/sunrise.svg' alt='sunrise' /></div><div class='item suntext'>" + today_sunriseStr + "</div>";
-        var today_sunset = "<div class='item sunicon'><img class='noinvert' src='./images/common/sunset.svg' alt='sunset' /></div><div class='item suntext'>" + today_sunsetStr + "</div>";
-        var tomorrow_sunrise = "<div class='item sunicon'><img class='noinvert' src='./images/common/sunrise.svg' alt='sunrise' /></div><div class='item suntext'>" + tomorrow_sunriseStr + "</div>";
+        var today_sunrise = "<img class='icon' src='./images/common/sunrise.svg' alt='sunrise' /><div>" + today_sunriseStr + "</div>";
+        var today_sunset = "<img class='icon' src='./images/common/sunset.svg' alt='sunset' /><div>" + today_sunsetStr + "</div>";
+        var tomorrow_sunrise = "<img class='icon' src='./images/common/sunrise.svg' alt='sunrise' /><div>" + tomorrow_sunriseStr + "</div>";
         var sun = today_sunrise;
 
         if (sunrise_hour < today.getHours()) {
@@ -159,7 +159,7 @@ $.getJSON(url + `?lat=` + lat + `&lon=` + lon, function (data, status) {
         }
 
         // Get instant and forecast for today
-        $(".forecast").html("Getting forecast for " + nextDate(0));
+        $(".maincontainer").html("Getting forecast for " + nextDate(0));
         console.log("Getting forecast for " + nextDate(0));
         var today_date = nextDate(0) + addZero(today.getHours()); // 2024-02-02T14
         var today_values_instant = getValues(data, today_date, "instant", "air_temperature", "wind_speed");
@@ -199,29 +199,29 @@ $.getJSON(url + `?lat=` + lat + `&lon=` + lon, function (data, status) {
         }
 
         // Make instant weather for today html
-        var today_condition = "<div class='item'><img class='conditiontoday' src='./images/" + theme + "/" + today_symbol + ext + "' alt='" + today_symbol + "' /></div>";
+        var today_condition = "<img class='conditionpic' src='./images/" + theme + "/" + today_symbol + ext + "' alt='" + today_symbol + "' />";
         var today_temperature = "<div class='temp'><div class='t1'>" + todayTempSplit1 + "</div>" + todayTempSplit2 + "</div>";
         var windicon = "wind";
         var thunder = "";
-        if (today_symbol.includes("thunder")) { thunder = "<img class='noinvert image2' src='./images/common/thunder.svg' alt='thunder' />" }
+        if (today_symbol.includes("thunder")) { thunder = "<img class='icon image2' src='./images/common/thunder.svg' alt='thunder' />" }
         if (today_wind_speed < 13) { windicon = "wind-" + parseInt(today_wind_speed) }
-        var today_wind = "<div class='item wind parent'><img class='noinvert image1' src='./images/common/" + windicon + ".svg' alt='wind' />" + thunder + "</div><div class='item speed'>" + today_wind_speed + "</div>";
+        var today_wind = "<div class='parent'><img class='icon image1' src='./images/common/" + windicon + ".svg' alt='wind' />" + thunder + "</div><div>" + today_wind_speed + "</div>";
         var today_start = "<div class='daycontainer'>";
         var today_end = "</div>";
-        var propsstart = "<div class='propscontainer'>";
+        var propsstart = "<div class='item propscontainer'>";
         var propsend = "</div>";
         var today_text = today_start + propsstart + today_wind + sun + propsend + today_condition + today_temperature + today_end;
         // Make forecast for today html
         var days_start = "<div class='daycontainer'>";
         var days_end = "</div>";
         var forecast_time = "<div class='item time'>" + formatDate(today_date + ":00:00Z") + "</div>";
-        var forecast_condition = "<div class='item condition'><img class='conditionpic' src='./images/" + theme + "/" + symbol_code + ext + "' alt='" + symbol_code + "' /></div>";
+        var forecast_condition = "<img class='conditionpic' src='./images/" + theme + "/" + symbol_code + ext + "' alt='" + symbol_code + "' />";
         var forecast_air_temperature_max = "<div class='item tempmax'>" + air_temp_max + "&deg;</div>";
         var forecast_air_temperature_min = "<div class='item tempmin'>" + air_temp_min + "&deg;</div>";
         var forecast_days = forecast_time + forecast_condition + forecast_air_temperature_max + forecast_air_temperature_min;
         var today_text = today_text + days_start + forecast_days + days_end;
 
-        $(".forecast").html("Getting forecasts for " + numOfdays + " days");
+        $(".maincontainer").html("Getting forecasts for " + numOfdays + " days");
         console.log("Getting forecasts for " + numOfdays + " days");
         for (var j = 1; j <= numOfdays; j++) {
             var date = nextDate(j) + "06"; // 2024-02-02T06
@@ -251,26 +251,26 @@ $.getJSON(url + `?lat=` + lat + `&lon=` + lon, function (data, status) {
             var days_start = "<div class='daycontainer'>";
             var days_end = "</div>";
             var forecast_time = "<div class='item time'>" + formatDate(date + ":00:00Z") + "</div>";
-            var forecast_condition = "<div class='item condition'><img class='conditionpic' src='./images/" + theme + "/" + symbol_code + ext + "' alt='" + symbol_code + "' /></div>";
+            var forecast_condition = "<img class='conditionpic' src='./images/" + theme + "/" + symbol_code + ext + "' alt='" + symbol_code + "' />";
             var forecast_air_temperature_max = "<div class='item tempmax'>" + air_temp_max + "&deg;</div>";
             var forecast_air_temperature_min = "<div class='item tempmin'>" + air_temp_min + "&deg;</div>";
             var forecast_days = forecast_time + forecast_condition + forecast_air_temperature_max + forecast_air_temperature_min;
             var forecast_text = days_start + forecast_days + days_end;
 
             console.log('Generating forecast for ' + date);
-            $(".forecast").html('Generating forecast for ' + date);
+            $(".maincontainer").html('Generating forecast for ' + date);
             forecast = forecast + forecast_text;
-            $(".forecast").html(forecast);
+            $(".maincontainer").html(forecast);
 
 
         }
         forecast = today_text + forecast;
-        $(".forecast").html(forecast);
+        $(".maincontainer").html(forecast);
 
     } else {
         console.error(status);
         var err = `ERROR: ${status}`;
-        $(".forecast").html(err);
+        $(".maincontainer").html(err);
     }
     console.log("Weather refreshed at " + today);
 });
