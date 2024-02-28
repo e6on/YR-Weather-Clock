@@ -1,6 +1,6 @@
 # YR Weather & Clock for AppDaemon dashboard.
 
-### Clock with date and Estonian holydays
+### Clock with date and Estonian holidays
 <img width="311" alt="Clock" src="https://github.com/e6on/YR-Weather-Clock/assets/10757941/35cec812-f40e-483a-9dc1-2dbb8bb81459">
 
 ### Realistic weather icons theme
