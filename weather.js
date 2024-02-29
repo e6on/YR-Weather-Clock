@@ -139,7 +139,8 @@ $.getJSON(url + `?lat=` + lat + `&lon=` + lon, function (data, status) {
         var sunrise_hour = today_sun_times.sunrise.getHours();
         var sunrise_minute = today_sun_times.sunrise.getMinutes();
         var sunset_hour = today_sun_times.sunset.getHours();
-        //console.log(sunrise_hour, sunset_hour);
+        var sunset_minute = today_sun_times.sunset.getMinutes();
+
         $(".maincontainer").html("Getting sun times... " + today_sunriseStr + " " + today_sunsetStr + " " + tomorrow_sunriseStr);
         console.log("Getting sun times... " + today_sunriseStr + " " + today_sunsetStr + " " + tomorrow_sunriseStr);
 
@@ -148,15 +149,15 @@ $.getJSON(url + `?lat=` + lat + `&lon=` + lon, function (data, status) {
         var tomorrow_sunrise = "<img class='icon' src='./images/common/sunrise.svg' alt='sunrise' /><div>" + tomorrow_sunriseStr + "</div>";
         var sun = today_sunrise;
 
-        if (sunrise_hour < today.getHours()) {
-            if (sunset_hour > today.getHours()) {
-                sun = today_sunset;
-            }
-        }
+        var sunrise_nr = Number(sunrise_hour + "." + sunrise_minute);
+        var sunset_nr = Number(sunset_hour + "." + sunset_minute);
+        var time_nr = Number(today.getHours() + "." + addZero(today.getMinutes()));
+        //console.log("sunrise " + sunrise_nr + " time " + time_nr + " sunset " + sunset_nr);
+
+        // display sunset when sun is rised
+        if (time_nr > sunrise_nr && time_nr < sunset_nr) { sun = today_sunset; }
         // display tomorrows sunrise when sun is set
-        if (sunset_hour < today.getHours()) {
-            sun = tomorrow_sunrise;
-        }
+        if (sunset_nr < time_nr) { sun = tomorrow_sunrise; }
 
         // Get instant and forecast for today
         $(".maincontainer").html("Getting forecast for " + nextDate(0));
@@ -183,19 +184,10 @@ $.getJSON(url + `?lat=` + lat + `&lon=` + lon, function (data, status) {
         var air_temp_min = getValue(today_values6h, "air_temperature_min");
         var symbol_code = getValue(today_values6h, "symbol_code");
 
-        // display todays day icon when sun is rised
-        if (sunrise_hour < today.getHours()) {
-            if (sunset_hour > today.getHours()) {
-                today_symbol = today_symbol.replace("_night", "_day");
-                symbol_code = symbol_code.replace("_night", "_day");
-            }
-        }
-        if (sunrise_hour = today.getHours()) {
-            if (sunrise_minute < today.getMinutes()) {
-                today_symbol = today_symbol.replace("_night", "_day");
-                symbol_code = symbol_code.replace("_night", "_day");
-
-            }
+        // display day icon between sunrise and sunset
+        if (time_nr > sunrise_nr && time_nr < sunset_nr) {
+            today_symbol = today_symbol.replace("_night", "_day");
+            symbol_code = symbol_code.replace("_night", "_day");
         }
 
         // Make instant weather for today html
