@@ -125,6 +125,7 @@ $.getJSON(url + `?lat=` + lat + `&lon=` + lon, function (data, status) {
 
     if (status === "success") {
 
+
         // get sunset & sunrise times
         // get today's sunlight times
         var today_sun_times = SunCalc.getTimes(today, lat, lon);
@@ -264,4 +265,3 @@ $.getJSON(url + `?lat=` + lat + `&lon=` + lon, function (data, status) {
     }
     console.log("Weather refreshed at " + today);
 });
-

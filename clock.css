@@ -1,5 +1,6 @@
 body {
     background-color: #444444;
+    color: white;
     font-family: "Helvetica Neue", Helvetica, "Open Sans", Arial;
     overflow: hidden;
 }
@@ -12,15 +13,51 @@ body {
     height: 100vh;
 }
 
-#cal_event {
-    font-size: 35px;
-    color: #7FFFD4;
-    text-align: center;
+#sunmoon {
+    height: 70px;
+    display: grid;
+    place-items: center;
+    grid-template-columns: min-content 20px 50px min-content;
+    grid-template-rows: 30px 30px;
+    grid-template-areas:
+        "moon . sunriseicon sunrisetime"
+        "moon . sunseticon sunsettime";
 }
 
-#date,
-#day {
-    font-size: 40px;
+#moon {
+    grid-area: moon;
+}
+
+#sunriseicon {
+    grid-area: sunriseicon;
+    height: 50px;
+    object-fit: contain;
+}
+
+#sunrisetime {
+    grid-area: sunrisetime;
+    font-size: 28px;
+}
+
+#sunseticon {
+    grid-area: sunseticon;
+    height: 50px;
+    object-fit: contain;
+}
+
+#sunsettime {
+    grid-area: sunsettime;
+    font-size: 28px;
+}
+
+#date {
+    font-size: 35px;
+    color: white;
+    height: 30px;
+}
+
+.day {
+    font-size: 35px;
     color: white;
 }
 
@@ -28,7 +65,7 @@ body {
     display: flex;
     flex-direction: row;
     justify-content: center;
-    align-items: center;
+
 }
 
 #time {
@@ -42,4 +79,10 @@ body {
     padding-top: 15px;
     padding-left: 5px;
     color: #F0E68C;
+}
+
+.cal_event {
+    font-size: 28px;
+    color: #7FFFD4;
+    text-align: center;
 }
