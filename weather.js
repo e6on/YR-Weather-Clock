@@ -125,47 +125,23 @@ $.getJSON(url + `?lat=` + lat + `&lon=` + lon, function (data, status) {
 
     if (status === "success") {
 
-
         // get sunset & sunrise times
         // get today's sunlight times
         var today_sun_times = SunCalc.getTimes(today, lat, lon);
-        // format sunrise time from the Date object
-        var today_sunriseStr = today_sun_times.sunrise.getHours() + ':' + today_sun_times.sunrise.getMinutes();
-        // format sunrise time from the Date object
-        var today_sunsetStr = today_sun_times.sunset.getHours() + ':' + today_sun_times.sunset.getMinutes();
-        // get tomorrow sunlight times
-        var tomorrow_sun_times = SunCalc.getTimes(tomorrow, lat, lon);
-        // format sunrise time from the Date object
-        var tomorrow_sunriseStr = tomorrow_sun_times.sunrise.getHours() + ':' + tomorrow_sun_times.sunrise.getMinutes();
         var sunrise_hour = today_sun_times.sunrise.getHours();
         var sunrise_minute = today_sun_times.sunrise.getMinutes();
         var sunset_hour = today_sun_times.sunset.getHours();
         var sunset_minute = today_sun_times.sunset.getMinutes();
 
-        $(".maincontainer").html("Getting sun times... " + today_sunriseStr + " " + today_sunsetStr + " " + tomorrow_sunriseStr);
-        console.log("Getting sun times... " + today_sunriseStr + " " + today_sunsetStr + " " + tomorrow_sunriseStr);
-
-        var today_sunrise = "<img class='icon' src='./images/common/sunrise.svg' alt='sunrise' /><div>" + today_sunriseStr + "</div>";
-        var today_sunset = "<img class='icon' src='./images/common/sunset.svg' alt='sunset' /><div>" + today_sunsetStr + "</div>";
-        var tomorrow_sunrise = "<img class='icon' src='./images/common/sunrise.svg' alt='sunrise' /><div>" + tomorrow_sunriseStr + "</div>";
-        var sun = today_sunrise;
-
-        var sunrise_nr = Number(sunrise_hour + "." + sunrise_minute);
-        var sunset_nr = Number(sunset_hour + "." + sunset_minute);
-        var time_nr = Number(today.getHours() + "." + addZero(today.getMinutes()));
-        //console.log("sunrise " + sunrise_nr + " time " + time_nr + " sunset " + sunset_nr);
-
-        // display sunset when sun is rised
-        if (time_nr > sunrise_nr && time_nr < sunset_nr) { sun = today_sunset; }
-        // display tomorrows sunrise when sun is set
-        if (sunset_nr < time_nr) { sun = tomorrow_sunrise; }
+        $(".maincontainer").html("Getting sun times... " + sunrise_hour + ":" + sunrise_minute + " " + sunset_hour + ":" + sunset_minute);
+        console.log("Getting sun times... " + sunrise_hour + ":" + sunrise_minute + " " + sunset_hour + ":" + sunset_minute);
 
         // Get instant and forecast for today
         $(".maincontainer").html("Getting forecast for " + nextDate(0));
         console.log("Getting forecast for " + nextDate(0));
         var today_date = nextDate(0) + addZero(today.getHours()); // 2024-02-02T14
         var today_values_instant = getValues(data, today_date, "instant", "air_temperature", "wind_speed");
-        var today_values1h = getValues(data, today_date, "next_1_hours", "symbol_code");
+        var today_values1h = getValues(data, today_date, "next_1_hours", "symbol_code", "probability_of_precipitation");
         var today_values6h = getValues(data, today_date, "next_6_hours", "air_temperature_max", "air_temperature_min", "symbol_code");
 
         // format todays instant temperature display
@@ -181,17 +157,23 @@ $.getJSON(url + `?lat=` + lat + `&lon=` + lon, function (data, status) {
 
         var today_wind_speed = getValue(today_values_instant, "wind_speed");
         var today_1h_symbol = getValue(today_values1h, "symbol_code");
+        var today_1h_precipitation = getValue(today_values1h, "probability_of_precipitation");
         var air_temp_max = getValue(today_values6h, "air_temperature_max");
         var air_temp_min = getValue(today_values6h, "air_temperature_min");
         var today_6h_symbol = getValue(today_values6h, "symbol_code");
 
         // display day icon between sunrise and sunset
-        if (time_nr > sunrise_nr && time_nr < sunset_nr) {
+        var sunrise_total_seconds = sunrise_hour * 3600 + sunrise_minute * 60;
+        var sunset_total_seconds = sunset_hour * 3600 + sunset_minute * 60;
+        var today_total_seconds = today.getHours() * 3600 + today.getMinutes() * 60;
+        //console.log(today_total_seconds, sunrise_total_seconds, sunset_total_seconds);
+        if (today_total_seconds > sunrise_total_seconds && today_total_seconds < sunset_total_seconds) {
             today_1h_symbol = today_1h_symbol.replace("_night", "_day");
             today_6h_symbol = today_6h_symbol.replace("_night", "_day");
         }
 
         // Make instant weather for today html
+        var today_precipitation = "<img class='icon' src='./images/common/umbrella.svg' alt='umbrella' /><div>" + today_1h_precipitation + "<sup>%</sup></div>";
         var today_condition = "<img class='conditionpic' src='./images/" + theme + "/" + today_1h_symbol + ext + "' alt='" + today_1h_symbol + "' />";
         var today_temperature = "<div class='temp'><div class='t1'>" + todayTempSplit1 + "</div>" + todayTempSplit2 + "</div>";
         var windicon = "wind";
@@ -203,7 +185,7 @@ $.getJSON(url + `?lat=` + lat + `&lon=` + lon, function (data, status) {
         var today_end = "</div>";
         var propsstart = "<div class='item propscontainer'>";
         var propsend = "</div>";
-        var today_text = today_start + propsstart + today_wind + sun + propsend + today_condition + today_temperature + today_end;
+        var today_text = today_start + propsstart + today_wind + today_precipitation + propsend + today_condition + today_temperature + today_end;
         // Make forecast for today html
         var forecast_time = "<div class='item time'>" + formatDate(today_date + ":00:00Z") + "</div>";
         var forecast_condition = "<img class='conditionpic' src='./images/" + theme + "/" + today_6h_symbol + ext + "' alt='" + today_6h_symbol + "' />";

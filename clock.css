@@ -16,16 +16,18 @@ body {
 #sunmoon {
     height: 70px;
     display: grid;
-    place-items: center;
+    align-content: center;
     grid-template-columns: min-content 20px 50px min-content;
-    grid-template-rows: 30px 30px;
+    grid-template-rows: 30px 10px 30px;
     grid-template-areas:
         "moon . sunriseicon sunrisetime"
-        "moon . sunseticon sunsettime";
+        "moon . sunseticon sunrisetime"
+        "moon . . sunsettime";
 }
 
 #moon {
     grid-area: moon;
+    align-self: end;
 }
 
 #sunriseicon {
@@ -37,6 +39,7 @@ body {
 #sunrisetime {
     grid-area: sunrisetime;
     font-size: 28px;
+    align-self: self-end;
 }
 
 #sunseticon {
@@ -53,7 +56,6 @@ body {
 #date {
     font-size: 35px;
     color: white;
-    height: 30px;
 }
 
 .day {
@@ -71,6 +73,7 @@ body {
 #time {
     font-size: 90px;
     color: #F0E68C;
+    height: 100px;
 }
 
 #seconds {
@@ -81,8 +84,12 @@ body {
     color: #F0E68C;
 }
 
+#space {
+    height: 10px;
+}
+
 .cal_event {
-    font-size: 28px;
+    font-size: 25px;
     color: #7FFFD4;
     text-align: center;
 }

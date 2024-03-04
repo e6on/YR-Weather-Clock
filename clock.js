@@ -1,6 +1,6 @@
 // Get today's date in the correct format.
 var today = new Date();
-//today.setMonth(7, 23);
+//today.setMonth(2, 18);
 var forISO_today = new Date(today.getTime() - today.getTimezoneOffset() * 60000);
 event_date = forISO_today.toISOString().slice(0, forISO_today.toISOString().indexOf("T")); // 2023-04-23
 let cal_event = "";
@@ -21,6 +21,7 @@ function getPyhad(date) {
             }
         }
     }
+    if (date === today.getFullYear() + "-03-18") { cal_event = "PALJU &Otilde;NNE S&Uuml;NNIP&Auml;EVAKS!" }
     xhr.send();
 }
 
@@ -32,23 +33,23 @@ function sun_moon() {
     var waxwan = true;
     if (Math.sign(moon_angle) === 1) { waxwan = false }; // moon waning
     if (Math.sign(moon_angle) === -1) { waxwan = true }; // moon waxing
-    console.log("Moon phase:", moon_phase, "Moon angle:", moon_angle);
+    //console.log("Moon phase:", moon_phase, "Moon angle:", moon_angle);
+    document.getElementById('moon').innerHTML = "";
     drawPlanetPhase(document.getElementById('moon'), moon_phase, waxwan, { diameter: 70, earthshine: 0, blur: 2, lightColour: '#444444', shadowColour: '#444444' });
 
     // get sunset & sunrise times
-    // get today's sunlight times
     let lat = 59.443;
     let lon = 24.738;
     var today_sun_times = SunCalc.getTimes(today, lat, lon);
-    // format sunrise time from the Date object
+    // format sunrise time
     var today_sunriseStr = today_sun_times.sunrise.getHours() + ':' + addZeroPadding(today_sun_times.sunrise.getMinutes());
-    // format sunrise time from the Date object
+    // format sunset time
     var today_sunsetStr = today_sun_times.sunset.getHours() + ':' + addZeroPadding(today_sun_times.sunset.getMinutes());
 
-    console.log("Sunrise: " + today_sunriseStr + " Sunset: " + today_sunsetStr);
-
+    //console.log("Sunrise: " + today_sunriseStr + " Sunset: " + today_sunsetStr);
     document.getElementById('sunrisetime').innerHTML = today_sunriseStr;
     document.getElementById('sunsettime').innerHTML = today_sunsetStr;
+    setTimeout(sun_moon, 60000); // Update every 60000 millisecond (1 minute)
 }
 
 function updateClock() {
@@ -61,19 +62,22 @@ function updateClock() {
 
     var time = hours + ':' + minutes;
     var date = now.getDate() + '.' + addZeroPadding(month) + '.' + now.getFullYear();
-
-    //document.getElementById('cal_event').innerHTML = cal_event;
+    //console.log(date);
 
     document.getElementById('day').innerHTML = day;
-    if (cal_event.length !== 0) {
-        document.getElementById('day').classList.add("cal_event");
-        document.getElementById('day').innerHTML = cal_event;
-    };
     document.getElementById('date').innerHTML = date;
     document.getElementById('time').innerHTML = time;
     document.getElementById('seconds').innerHTML = seconds;
+
+    // Replace day with holiday
+    if (cal_event.length !== 0) {
+        if (cal_event.length > 31) {
+            document.getElementById('day').classList.add("cal_event");
+            document.getElementById('day').innerHTML = cal_event;
+        }
+    };
     //console.log(now);
-    setTimeout(updateClock, 1000); // Update every 1000 millisecond
+    setTimeout(updateClock, 1000); // Update every 1000 millisecond (1 second)
 }
 
 // Function to add zero padding to numbers less than 10
@@ -87,4 +91,5 @@ getPyhad(event_date);
 updateClock();
 // Get sun & moon
 sun_moon();
+
 

@@ -68,6 +68,10 @@ span {
     color: #00FFFF;
 }
 
+sup {
+    font-size: 20px;
+}
+
 .tempsplit {
     font-size: 35px;
 }
