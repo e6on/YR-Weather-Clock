@@ -88,8 +88,11 @@ body {
     height: 10px;
 }
 
-.cal_event {
+.cal_font {
     font-size: 25px;
+}
+
+.cal_event {
     color: #7FFFD4;
     text-align: center;
 }

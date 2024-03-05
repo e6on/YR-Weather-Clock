@@ -1,6 +1,7 @@
 // Get today's date in the correct format.
 var today = new Date();
 //today.setMonth(2, 18);
+//today.setMonth(0, 1);
 var forISO_today = new Date(today.getTime() - today.getTimezoneOffset() * 60000);
 event_date = forISO_today.toISOString().slice(0, forISO_today.toISOString().indexOf("T")); // 2023-04-23
 let cal_event = "";
@@ -71,9 +72,10 @@ function updateClock() {
 
     // Replace day with holiday
     if (cal_event.length !== 0) {
+        document.getElementById('day').classList.add("cal_event");
+        document.getElementById('day').innerHTML = cal_event;
         if (cal_event.length > 31) {
-            document.getElementById('day').classList.add("cal_event");
-            document.getElementById('day').innerHTML = cal_event;
+            document.getElementById('day').classList.add("cal_font");
         }
     };
     //console.log(now);
