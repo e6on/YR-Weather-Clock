@@ -36,7 +36,7 @@ function sun_moon() {
     if (Math.sign(moon_angle) === -1) { waxwan = true }; // moon waxing
     //console.log("Moon phase:", moon_phase, "Moon angle:", moon_angle);
     document.getElementById('moon').innerHTML = "";
-    drawPlanetPhase(document.getElementById('moon'), moon_phase, waxwan, { diameter: 70, earthshine: 0, blur: 2, lightColour: '#444444', shadowColour: '#444444' });
+    drawPlanetPhase(document.getElementById('moon'), moon_phase, waxwan, { diameter: 70, earthshine: 0, blur: 2, lightColour: '#0A0A0A', shadowColour: '#0A0A0A' });
 
     // get sunset & sunrise times
     let lat = 59.443;
