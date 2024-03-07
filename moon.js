@@ -77,7 +77,7 @@ var drawPlanetPhase = (function () {
             'width': blurredDiameter + 'px',
             'left': blurredOffset + 'px',
             'top': ((outer.diameter - blurredDiameter) / 2) + 'px',
-            'boxShadow': '0px 0px ' + blurSize + 'px ' + blurSize + 'px ' + inner.colour + ' inset',
+            'boxShadow': '0px 0px ' + blurSize + 'px ' + blurSize + 'px ' + inner.colour,
             'opacity': inner.opacity
         });
     }
