@@ -180,7 +180,7 @@ $.getJSON(url + `?lat=` + lat + `&lon=` + lon, function (data, status) {
         var thunder = "";
         if (today_1h_symbol.includes("thunder")) { thunder = "<img class='icon image2' src='./images/common/thunder.svg' alt='thunder' />" }
         if (today_wind_speed < 13) { windicon = "wind-" + parseInt(today_wind_speed) }
-        var today_wind = "<div class='parent'><img class='icon image1' src='./images/common/" + windicon + ".svg' alt='wind' />" + thunder + "</div><div>" + today_wind_speed + "</div>";
+        var today_wind = "<div class='parent'><img class='icon image1' src='./images/common/" + windicon + ".svg' alt='wind' />" + thunder + "</div><div>" + today_wind_speed + "<sup>m/s</sup></div>";
         var today_start = "<div class='daycontainer'>";
         var today_end = "</div>";
         var propsstart = "<div class='item propscontainer'>";
