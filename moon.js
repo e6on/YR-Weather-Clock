@@ -54,6 +54,9 @@ var drawPlanetPhase = (function () {
         var blurredDiameter, blurredOffset;
         setCss(outer.box, {
             'position': 'relative',
+            'backgroundImage': "url('./images/common/moon.png')",
+            'backgroundSize': outer.diameter + 'px',
+            'backgroundPosition': Math.abs(blurredOffset) + 'px ' + Math.abs(((outer.diameter - blurredDiameter) / 2)) + 'px',
             'height': outer.diameter + 'px',
             'width': outer.diameter + 'px',
             'border': '0px solid black',
@@ -68,9 +71,9 @@ var drawPlanetPhase = (function () {
         setCss(inner.box, {
             'position': 'absolute',
             'backgroundColor': inner.colour,
-            'backgroundImage': "url('./images/common/moon.png')",
-            'backgroundSize': outer.diameter + 'px',
-            'backgroundPosition': Math.abs(blurredOffset) + 'px ' + Math.abs(((outer.diameter - blurredDiameter) / 2)) + 'px',
+            //            'backgroundImage': "url('./images/common/moon.png')",
+            //            'backgroundSize': outer.diameter + 'px',
+            //            'backgroundPosition': Math.abs(blurredOffset) + 'px ' + Math.abs(((outer.diameter - blurredDiameter) / 2)) + 'px',
             'borderRadius': (blurredDiameter / 2) + 'px',
             'border': '0px solid' + inner.colour,
             'height': blurredDiameter + 'px',
