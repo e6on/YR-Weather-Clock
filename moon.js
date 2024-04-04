@@ -54,12 +54,12 @@ var drawPlanetPhase = (function () {
         var blurredDiameter, blurredOffset;
         setCss(outer.box, {
             'position': 'relative',
-            'backgroundImage': "url('./images/common/moon.png')",
+            'backgroundImage': outer.bgimage,
             'backgroundSize': outer.diameter + 'px',
             'backgroundPosition': Math.abs(blurredOffset) + 'px ' + Math.abs(((outer.diameter - blurredDiameter) / 2)) + 'px',
             'height': outer.diameter + 'px',
             'width': outer.diameter + 'px',
-            'border': '0px solid black',
+            'border': '1px solid black',
             'backgroundColor': outer.colour,
             'borderRadius': (outer.diameter / 2) + 'px',
             'overflow': 'hidden'
@@ -67,15 +67,15 @@ var drawPlanetPhase = (function () {
 
         blurredDiameter = inner.diameter - blurSize;
         blurredOffset = inner.offset + blurSize / 2;
+        var bgPosFix = outer.diameter - inner.offset * 2;
 
         setCss(inner.box, {
             'position': 'absolute',
+            'backgroundImage': inner.bgimage,
+            'backgroundSize': outer.diameter + 'px',
+            'backgroundPosition': Math.abs(blurredOffset + bgPosFix) + 'px ' + Math.abs(((outer.diameter - blurredDiameter) / 2)) + 'px',
             'backgroundColor': inner.colour,
-            //            'backgroundImage': "url('./images/common/moon.png')",
-            //            'backgroundSize': outer.diameter + 'px',
-            //            'backgroundPosition': Math.abs(blurredOffset) + 'px ' + Math.abs(((outer.diameter - blurredDiameter) / 2)) + 'px',
             'borderRadius': (blurredDiameter / 2) + 'px',
-            'border': '0px solid' + inner.colour,
             'height': blurredDiameter + 'px',
             'width': blurredDiameter + 'px',
             'left': blurredOffset + 'px',
@@ -101,6 +101,8 @@ var drawPlanetPhase = (function () {
             if (isWaxing) {
                 phase *= -1;
             }
+            var outerImage = "url('./images/common/moon.png')";
+            var innerImage = "";
         } else {
             outerColour = config.shadowColour;
             innerColour = config.lightColour;
@@ -108,6 +110,8 @@ var drawPlanetPhase = (function () {
             if (!isWaxing) {
                 phase *= -1;
             }
+            var outerImage = "";
+            var innerImage = "url('./images/common/moon.png')";
         }
 
         innerVals = calcInner(config.diameter, phase * 2);
@@ -115,13 +119,15 @@ var drawPlanetPhase = (function () {
         drawDiscs({
             box: outerBox,
             diameter: config.diameter,
-            colour: outerColour
+            colour: outerColour,
+            bgimage: outerImage
         }, {
             box: innerBox,
             diameter: innerVals.d,
             colour: innerColour,
             offset: innerVals.o,
-            opacity: 1 - config.earthshine
+            opacity: 1 - config.earthshine,
+            bgimage: innerImage
         }, config.blur);
     }
 

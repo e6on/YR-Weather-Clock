@@ -31,12 +31,13 @@ function sun_moon() {
     var moon = SunCalc.getMoonIllumination(today);
     var moon_phase = moon.phase;
     var moon_angle = moon.angle;
+    var moon_fraction = moon.fraction;
     var waxwan = true;
     if (Math.sign(moon_angle) === 1) { waxwan = false }; // moon waning
     if (Math.sign(moon_angle) === -1) { waxwan = true }; // moon waxing
-    //console.log("Moon phase:", moon_phase, "Moon angle:", moon_angle);
+    console.log("Moon phase:", moon_phase, "Moon fraction:", moon_fraction, "Moon angle:", moon_angle);
     document.getElementById('moon').innerHTML = "";
-    drawPlanetPhase(document.getElementById('moon'), moon_phase, waxwan, { diameter: 70, earthshine: 0.15, blur: 1.2, lightColour: '#444444', shadowColour: '#0A0A0A' });
+    drawPlanetPhase(document.getElementById('moon'), moon_fraction, waxwan, { diameter: 70, earthshine: 0, blur: 0, lightColour: 'black', shadowColour: 'black' });
 
     // get sunset & sunrise times
     let lat = 59.443;

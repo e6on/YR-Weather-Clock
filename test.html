@@ -4,7 +4,7 @@
     <head>
         <style>
             body {
-                background-color: black;
+                background-color: grey;
                 color: white;
             }
         </style>
@@ -12,9 +12,9 @@
 
     <body>
         <div id="moon"></div>
-        <script src="planet_phase.js"></script>
+        <script src="moon.js"></script>
         <script>
-            drawPlanetPhase(document.getElementById('moon'), 0.1, true, { diameter: 50, earthshine: 0.1, blur: 10, lightColour: '#9bf' })
+            drawPlanetPhase(document.getElementById('moon'), 1, false, { diameter: 70, earthshine: 0, blur: 0, lightColour: 'black', shadowColour: 'black' })
         </script>
     </body>
 
