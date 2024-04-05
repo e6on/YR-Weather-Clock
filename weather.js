@@ -59,7 +59,8 @@ function getValue(obj, key) {
 
 function getValues(obj, timeKey, duration, ...keys) {
     // Define the fallback hours
-    const fallbackHours = ['00', '06', '12', '18'];
+    // Remove the declaration of the unused variable
+    // const fallbackHours = ['00', '06', '12', '18'];
 
     // Iterate over the timeseries data
     for (let timeData of obj.properties.timeseries) {
