@@ -1,5 +1,3 @@
-const SunCalc = require('suncalc'); // Import the SunCalc module
-
 // Get today's date in the correct format.
 var today = new Date();
 //today.setMonth(2, 18);
