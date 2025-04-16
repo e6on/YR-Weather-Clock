@@ -1,252 +1,388 @@
-let url = "https://api.met.no/weatherapi/locationforecast/2.0/complete";
-let lat = 59.443;
-let lon = 24.738;
-let theme = "realistic"; // themes: "yr", "anim", "realistic"
-var ext = ".svg";
-var numOfdays = 3;
-var forecast = "";
-const today = new Date();
-//today.setHours(16);
-//today.setMinutes(55);
-const tomorrow = new Date();
-tomorrow.setDate(tomorrow.getDate() + 1);
-var forISO_date = new Date(today.getTime() - today.getTimezoneOffset() * 60000);
+// --- Configuration ---
+const API_URL = "https://api.met.no/weatherapi/locationforecast/2.0/complete";
+const LATITUDE = 59.443;
+const LONGITUDE = 24.738;
+const THEME = "realistic"; // "yr", "anim", "realistic"
+const NUM_OF_DAYS_FORECAST = 3; // Number of days beyond today
+const WEATHER_CONTAINER_SELECTOR = ".maincontainer"; // Selector for the display element
 
-if (theme === "realistic") { ext = ".png" }
+// --- Constants ---
+const IMAGE_EXT = THEME === "realistic" ? ".png" : ".svg";
+const IMAGE_PATH = `./images/${THEME}/`;
+const COMMON_IMAGE_PATH = './images/common/';
+const MS_IN_MINUTE = 60000;
+const MS_IN_HOUR = 3600000;
+const MS_IN_DAY = 86400000;
 
-function nextDate(days) {
-    const nextDay = new Date(forISO_date);
-    nextDay.setDate(forISO_date.getDate() + days);
-    console.log("Next date " + nextDay.toISOString().slice(0, nextDay.toISOString().indexOf("T") + 1));
-    return nextDay.toISOString().slice(0, nextDay.toISOString().indexOf("T") + 1); //2024-02-01T   
+// --- DOM Elements ---
+// Cache the container element for efficiency
+const weatherContainer = document.querySelector(WEATHER_CONTAINER_SELECTOR);
+if (!weatherContainer) {
+    console.error(`Error: Element with selector "${WEATHER_CONTAINER_SELECTOR}" not found.`);
+    // Optionally, stop execution if the container is essential
+    // throw new Error(`Weather container not found.`);
 }
 
-function addZero(i) {
-    if (i < 10) { i = "0" + i }
-    return i;
-}
+// --- Utility Functions ---
 
-function formatDate(d) {
-    // 2024-02-01T13:00:00Z --> N 01 VEEBR
-    const jsonDate = new Date(d);
-    var fixed_date = new Date(jsonDate.getTime() + jsonDate.getTimezoneOffset() * 60000);
-    const day = fixed_date.getDay();
-    const days = ["P", "E", "T", "K", "N", "R", "L"];
-    const date = fixed_date.getDate();
-    const month = fixed_date.getMonth();
-    const months = ["JAAN", "VEEBR", "MÄRTS", "APR", "MAI", "JUUNI", "JUULI", "AUG", "SEPT", "OKT", "NOV", "DETS"];
-    //console.log(days[day] + " " + date + " " + months[month]);
-    console.log("Formatting to date " + days[day] + " " + date + " " + months[month]);
-    return "&nbsp;<span>" + days[day] + "</span>&nbsp;&nbsp;" + date + "&nbsp;" + months[month];
-}
+/**
+ * Adds a leading zero to single-digit numbers.
+ * @param {number} num - The number to format.
+ * @returns {string} Formatted number string.
+ */
+const addZero = (num) => (num < 10 ? '0' : '') + num;
 
-function getValue(obj, key) {
-    let value;
-    for (let k in obj) {
-        if (k === key) {
-            return obj[k];
-        }
-        if (obj[k] && typeof obj[k] === 'object') {
-            value = getValue(obj[k], key);
-            //console.log(value);
-            if (value !== undefined) {
-                return value;
-            }
-        }
-    }
-    return value;
-}
-
-function getValues(obj, timeKey, duration, ...keys) {
-    // Define the fallback hours
-    // Remove the declaration of the unused variable
-    // const fallbackHours = ['00', '06', '12', '18'];
-
-    // Iterate over the timeseries data
-    for (let timeData of obj.properties.timeseries) {
-        // Check if the timeKey matches with the time in the data
-        if (timeData.time.startsWith(timeKey) && Object.keys(extractValues(timeData, duration, keys)).length !== 0) {
-            //console.log(timeData);
-            return extractValues(timeData, duration, keys);
-        }
+/**
+ * Calculates a future date string in YYYY-MM-DDTHH format.
+ * @param {Date} baseDate - The starting date object.
+ * @param {number} daysOffset - Number of days to add.
+ * @param {number} hour - Specific hour (0-23). Must be provided.
+ * @returns {string} Date string in YYYY-MM-DDTHH format (e.g., "2024-02-01T06").
+ */
+const getFutureDateString = (baseDate, daysOffset, hour) => {
+    // Ensure hour is provided, as the target format requires it.
+    if (hour === undefined || hour === null || hour < 0 || hour > 23) {
+        console.error("getFutureDateString requires a valid hour (0-23).");
+        // Return a default/error indicator or throw an error
+        return "INVALID_DATE_FORMAT";
+        // Or: throw new Error("getFutureDateString requires a valid hour (0-23).");
     }
 
-    // If no match was found for the timeKey, look for the fallback hours
-    let hour = parseInt(timeKey.split('T')[1].split(':')[0]);
-    let date = timeKey.split('T')[0];
-    let fallbackHour;
-    if (hour > 0 && hour < 6) {
-        fallbackHour = '00';
-    } else if (hour > 6 && hour < 12) {
-        fallbackHour = '06';
-    } else if (hour > 12 && hour < 18) {
-        fallbackHour = '12';
-    } else if (hour > 18 && hour <= 23) {
-        fallbackHour = '18';
+    const targetDate = new Date(baseDate.getTime() + daysOffset * MS_IN_DAY);
+
+    // Adjust for timezone offset to get correct date part relative to local time
+    // before converting to ISO string (which is UTC based)
+    const adjustedDate = new Date(targetDate.getTime() - targetDate.getTimezoneOffset() * MS_IN_MINUTE);
+
+    const isoString = adjustedDate.toISOString(); // e.g., "2024-02-01T10:30:00.000Z"
+
+    // Extract the date part "YYYY-MM-DD"
+    const datePart = isoString.slice(0, 10);
+
+    // Combine date part with "T" and the zero-padded hour
+    return `${datePart}T${addZero(hour)}`; // e.g., "2024-02-01T06"
+};
+
+/**
+ * Formats an ISO date string (like "2024-02-01T13:00:00Z") into Estonian locale format.
+ * @param {string} isoString - The ISO date string.
+ * @returns {string} Formatted date string (e.g., "&nbsp;<span>N</span>&nbsp;&nbsp;1&nbsp;VEEBR").
+ */
+const formatDateEstonian = (isoString) => {
+    try {
+        const date = new Date(isoString);
+        // No need to manually adjust timezone offset if using localeString options correctly
+        const dayInitial = date.toLocaleDateString('et-EE', { weekday: 'short' }).charAt(0).toUpperCase();
+        const dayOfMonth = date.getDate();
+        const monthName = date.toLocaleDateString('et-EE', { month: 'short' }).toUpperCase().replace('.', ''); // Remove dot if present
+
+        return `&nbsp;<span>${dayInitial}</span>&nbsp;&nbsp;${dayOfMonth}&nbsp;${monthName}`;
+    } catch (e) {
+        console.error("Error formatting date:", isoString, e);
+        return "Invalid Date";
     }
+};
 
-    if (fallbackHour) {
-        for (let timeData of obj.properties.timeseries) {
-            // Extract the hour and date from the time
-            let timeHour = timeData.time.split('T')[1].split(':')[0];
-            let timeDate = timeData.time.split('T')[0];
+/**
+ * Extracts specific keys from a timeData object's details or summary for a given duration.
+ * @param {object} timeData - A single timeseries entry from the API.
+ * @param {string} duration - e.g., "instant", "next_1_hours".
+ * @param {string[]} keys - Array of keys to extract (e.g., ["air_temperature"]).
+ * @returns {object} Object containing found key-value pairs.
+ */
+const extractValues = (timeData, duration, keys) => {
+    const results = {};
+    const dataBlock = timeData?.data?.[duration]; // Use optional chaining
 
-            // Check if the hour matches with the fallback hour and the date matches with the date of the timeKey
-            if (timeHour === fallbackHour && timeDate === date) {
-                //console.log(timeData);
-                return extractValues(timeData, duration, keys);
-            }
-        }
-    }
-    console.log(`TimeKey "${timeKey}" does not match with the time in the data and no fallback hour was found.`);
-}
+    if (!dataBlock) return results; // No data for this duration
 
-function extractValues(timeData, duration, keys) {
-    let results = {};
-    // Iterate over the keys
-    for (let key of keys) {
-        // Check if the duration exists in the data
-        if (timeData.data.hasOwnProperty(duration)) {
-            // Check if the summary exists and the key exists in the summary of the duration
-            if (timeData.data[duration].summary && timeData.data[duration].summary.hasOwnProperty(key)) {
-                // Add the key-value pair to the results
-                results[key] = timeData.data[duration].summary[key];
-            }
-            // Check if the details exist and the key exists in the details of the duration
-            else if (timeData.data[duration].details && timeData.data[duration].details.hasOwnProperty(key)) {
-                // Add the key-value pair to the results
-                results[key] = timeData.data[duration].details[key];
-            }
+    for (const key of keys) {
+        if (dataBlock.summary && Object.hasOwn(dataBlock.summary, key)) {
+            results[key] = dataBlock.summary[key];
+        } else if (dataBlock.details && Object.hasOwn(dataBlock.details, key)) {
+            results[key] = dataBlock.details[key];
         }
     }
     return results;
-}
+};
 
-$.getJSON(url + `?lat=` + lat + `&lon=` + lon, function (data, status) {
-
-    if (status === "success") {
-
-        // get sunset & sunrise times
-        // get today's sunlight times
-        var today_sun_times = SunCalc.getTimes(today, lat, lon);
-        var sunrise_hour = today_sun_times.sunrise.getHours();
-        var sunrise_minute = today_sun_times.sunrise.getMinutes();
-        var sunset_hour = today_sun_times.sunset.getHours();
-        var sunset_minute = today_sun_times.sunset.getMinutes();
-
-        $(".maincontainer").html("Getting sun times... " + sunrise_hour + ":" + sunrise_minute + " " + sunset_hour + ":" + sunset_minute);
-        console.log("Getting sun times... " + sunrise_hour + ":" + sunrise_minute + " " + sunset_hour + ":" + sunset_minute);
-
-        // Get instant and forecast for today
-        $(".maincontainer").html("Getting forecast for " + nextDate(0));
-        console.log("Getting forecast for " + nextDate(0));
-        var today_date = nextDate(0) + addZero(today.getHours()); // 2024-02-02T14
-        var today_values_instant = getValues(data, today_date, "instant", "air_temperature", "wind_speed");
-        var today_values1h = getValues(data, today_date, "next_1_hours", "symbol_code", "probability_of_precipitation");
-        var today_values6h = getValues(data, today_date, "next_6_hours", "air_temperature_max", "air_temperature_min", "symbol_code");
-
-        // format todays instant temperature display
-        var today_temp = getValue(today_values_instant, "air_temperature");
-        var tempString = today_temp.toString();
-        const tempArray = tempString.split(".");
-        var todayTempSplit1 = tempArray[0];
-        if (tempArray.length > 1) {
-            var todayTempSplit2 = "<div class='tempsplit deg'>&deg;</div><div class='tempsplit t2'>." + tempArray[1] + "</div>";
-        } else {
-            var todayTempSplit2 = "<div class='tempsplit deg'>&deg;</div><div class='tempsplit t2'>.0</div>";
-        };
-
-        var today_wind_speed = getValue(today_values_instant, "wind_speed");
-        var today_1h_symbol = getValue(today_values1h, "symbol_code");
-        var today_1h_precipitation = getValue(today_values1h, "probability_of_precipitation");
-        var air_temp_max = getValue(today_values6h, "air_temperature_max");
-        var air_temp_min = getValue(today_values6h, "air_temperature_min");
-        var today_6h_symbol = getValue(today_values6h, "symbol_code");
-
-        // display day icon between sunrise and sunset
-        var sunrise_total_seconds = sunrise_hour * 3600 + sunrise_minute * 60;
-        var sunset_total_seconds = sunset_hour * 3600 + sunset_minute * 60;
-        var today_total_seconds = today.getHours() * 3600 + today.getMinutes() * 60;
-        //console.log(today_total_seconds, sunrise_total_seconds, sunset_total_seconds);
-        if (today_total_seconds > sunrise_total_seconds && today_total_seconds < sunset_total_seconds) {
-            today_1h_symbol = today_1h_symbol.replace("_night", "_day");
-            today_6h_symbol = today_6h_symbol.replace("_night", "_day");
-        }
-
-        // Make instant weather for today html
-
-        var today_condition = "<img class='conditionpic' src='./images/" + theme + "/" + today_1h_symbol + ext + "' alt='" + today_1h_symbol + "' />";
-        var today_temperature = "<div class='temp'><div class='t1'>" + todayTempSplit1 + "</div>" + todayTempSplit2 + "</div>";
-        var windicon = "wind";
-        var thunder = "";
-        // add thunder icon to the umbrella icon when there is an thunder
-        if (today_1h_symbol.includes("thunder")) { thunder = "<img class='icon image2' src='./images/common/thunder.svg' alt='thunder' />" }
-        var today_precipitation = "<div class='parent'><img class='icon' src='./images/common/umbrella.svg' alt='umbrella' />" + thunder + "</div><div>" + today_1h_precipitation + "<sup>%</sup></div>";
-        if (today_wind_speed < 13) { windicon = "wind-" + parseInt(today_wind_speed) }
-        var today_wind = "<img class='icon image1' src='./images/common/" + windicon + ".svg' alt='wind' /><div>" + today_wind_speed + "<sup>m/s</sup></div>";
-        var today_start = "<div class='daycontainer'>";
-        var today_end = "</div>";
-        var propsstart = "<div class='item propscontainer'>";
-        var propsend = "</div>";
-        var today_text = today_start + propsstart + today_wind + today_precipitation + propsend + today_condition + today_temperature + today_end;
-        // Make forecast for today html
-        var forecast_time = "<div class='item time'>" + formatDate(today_date + ":00:00Z") + "</div>";
-        var forecast_condition = "<img class='conditionpic' src='./images/" + theme + "/" + today_6h_symbol + ext + "' alt='" + today_6h_symbol + "' />";
-        var forecast_air_temperature_max = "<div class='item tempmax'>" + air_temp_max + "&deg;</div>";
-        var forecast_air_temperature_min = "<div class='item tempmin'>" + air_temp_min + "&deg;</div>";
-        var forecast_today = forecast_time + forecast_condition + forecast_air_temperature_max + forecast_air_temperature_min;
-        var today_text = today_text + today_start + forecast_today + today_end;
-
-        $(".maincontainer").html("Getting forecasts for " + numOfdays + " days");
-        console.log("Getting forecasts for " + numOfdays + " days");
-        for (var j = 1; j <= numOfdays; j++) {
-            var date = nextDate(j) + "06"; // 2024-02-02T06
-
-            //console.log(date);
-            //console.log(today_values_instant);
-
-            // Get forecast for next days
-            var days_values6h = getValues(data, date, "next_6_hours", "air_temperature_max", "air_temperature_min", "symbol_code");
-            var days_values12h = getValues(data, date, "next_12_hours", "symbol_code");
-            //console.log(days_values6h);
-            //console.log(days_values12h);
-            var air_temp_max = getValue(days_values6h, "air_temperature_max");
-            var air_temp_min = getValue(days_values6h, "air_temperature_min");
-            if (getValue(days_values12h, "symbol_code") !== undefined) {
-                var symbol_code = getValue(days_values12h, "symbol_code");
-            } else {
-                var symbol_code = getValue(days_values6h, "symbol_code");
+/**
+ * Finds the timeseries entry closest to the target timeKey and extracts values.
+ * Implements fallback to nearest standard forecast hour (00, 06, 12, 18) if exact hour not found.
+ * @param {object[]} timeseries - The array of timeseries data from the API.
+ * @param {string} timeKey - The target time key (e.g., "2024-02-02T14").
+ * @param {string} duration - The forecast duration (e.g., "next_1_hours").
+ * @param {string[]} keys - Keys to extract.
+ * @returns {object | null} Extracted values or null if no suitable data found.
+ */
+const findAndExtractValues = (timeseries, timeKey, duration, keys) => {
+    // 1. Try exact match
+    for (const timeData of timeseries) {
+        if (timeData.time.startsWith(timeKey)) {
+            const values = extractValues(timeData, duration, keys);
+            // Ensure we actually got *some* of the requested keys for this duration
+            if (Object.keys(values).length > 0) {
+                 console.log(`Exact match found for ${timeKey}, duration ${duration}`);
+                 return values;
             }
-
-            //console.log(sunrise_hour, sunrise_minute, sunset_hour, sunset_minute);
-            //console.log(today.getHours(), today.getMinutes());
-            symbol_code = symbol_code.replace("_night", "_day");
-            //console.log("max: " + air_temp_max + " min: " + air_temp_min + " code: " + symbol_code);
-
-            // Make forecast for next days html
-            var days_start = "<div class='daycontainer'>";
-            var days_end = "</div>";
-            var forecast_time = "<div class='item time'>" + formatDate(date + ":00:00Z") + "</div>";
-            var forecast_condition = "<img class='conditionpic' src='./images/" + theme + "/" + symbol_code + ext + "' alt='" + symbol_code + "' />";
-            var forecast_air_temperature_max = "<div class='item tempmax'>" + air_temp_max + "&deg;</div>";
-            var forecast_air_temperature_min = "<div class='item tempmin'>" + air_temp_min + "&deg;</div>";
-            var forecast_days = forecast_time + forecast_condition + forecast_air_temperature_max + forecast_air_temperature_min;
-            var forecast_text = days_start + forecast_days + days_end;
-
-            console.log('Generating forecast for ' + date);
-            $(".maincontainer").html('Generating forecast for ' + date);
-            forecast = forecast + forecast_text;
-            $(".maincontainer").html(forecast);
-
-
         }
-        forecast = today_text + forecast;
-        $(".maincontainer").html(forecast);
-
-    } else {
-        console.error(status);
-        var err = `ERROR: ${status}`;
-        $(".maincontainer").html(err);
     }
-    console.log("Weather refreshed at " + today);
-});
+     console.log(`No exact match or no relevant data for ${timeKey}, duration ${duration}. Trying fallback.`);
+
+
+    // 2. Try fallback to nearest previous standard hour (00, 06, 12, 18) on the same day
+    const targetHour = parseInt(timeKey.split('T')[1], 10);
+    const targetDateStr = timeKey.split('T')[0];
+    let fallbackHourStr = null;
+
+    if (targetHour >= 18) fallbackHourStr = '18';
+    else if (targetHour >= 12) fallbackHourStr = '12';
+    else if (targetHour >= 6) fallbackHourStr = '06';
+    else if (targetHour >= 0) fallbackHourStr = '00';
+
+    if (fallbackHourStr) {
+        const fallbackTimeKey = `${targetDateStr}T${fallbackHourStr}`;
+        console.log(`Falling back to check ${fallbackTimeKey}`);
+        for (const timeData of timeseries) {
+            if (timeData.time.startsWith(fallbackTimeKey)) {
+                const values = extractValues(timeData, duration, keys);
+                 if (Object.keys(values).length > 0) {
+                    console.log(`Fallback match found at ${fallbackTimeKey} for original ${timeKey}, duration ${duration}`);
+                    return values;
+                }
+            }
+        }
+    }
+
+    console.warn(`No data found for timeKey "${timeKey}" or fallback for duration "${duration}".`);
+    return null; // Indicate no data found
+};
+
+/**
+ * Formats temperature value into HTML with integer and decimal parts.
+ * @param {number | undefined} temp - The temperature value.
+ * @returns {string} HTML string for temperature display.
+ */
+const formatTemperatureHTML = (temp) => {
+    if (temp === undefined || temp === null) return "<div class='temp'>--&deg;</div>"; // Handle missing temp
+
+    const tempString = temp.toString();
+    const [integerPart, decimalPart] = tempString.split('.');
+    const decimalDisplay = decimalPart ? `.${decimalPart}` : '.0';
+
+    return `<div class='temp'>
+                <div class='t1'>${integerPart}</div>
+                <div class='tempsplit deg'>&deg;</div>
+                <div class='tempsplit t2'>${decimalDisplay}</div>
+            </div>`;
+};
+
+/**
+ * Adjusts symbol code to use "_day" variant if current time is daytime.
+ * @param {string} symbolCode - Original symbol code.
+ * @param {Date} currentTime - The current time.
+ * @param {object} sunTimes - Object with sunrise and sunset Date objects.
+ * @returns {string} Adjusted symbol code.
+ */
+const adjustSymbolForDaytime = (symbolCode, currentTime, sunTimes) => {
+    if (!symbolCode) return 'default'; // Handle missing symbol code
+    const currentMillis = currentTime.getTime();
+    const sunriseMillis = sunTimes.sunrise.getTime();
+    const sunsetMillis = sunTimes.sunset.getTime();
+
+    if (currentMillis > sunriseMillis && currentMillis < sunsetMillis) {
+        return symbolCode.replace('_night', '_day');
+    }
+    return symbolCode;
+};
+
+/**
+ * Generates HTML for the current weather conditions.
+ * @param {object} instantData - Data for 'instant'.
+ * @param {object} next1hData - Data for 'next_1_hours'.
+ * @param {Date} currentTime - Current time.
+ * @param {object} sunTimes - Sunrise/sunset times.
+ * @returns {string} HTML string.
+ */
+const createCurrentWeatherHTML = (instantData, next1hData, currentTime, sunTimes) => {
+    const temp = instantData?.air_temperature;
+    const windSpeed = instantData?.wind_speed;
+    const symbolCode1h = next1hData?.symbol_code;
+    const precipitationProb = next1hData?.probability_of_precipitation;
+
+    const adjustedSymbol1h = adjustSymbolForDaytime(symbolCode1h, currentTime, sunTimes);
+    const conditionImage = `<img class='conditionpic' src='${IMAGE_PATH}${adjustedSymbol1h}${IMAGE_EXT}' alt='${adjustedSymbol1h || 'Weather icon'}' />`;
+    const temperatureHTML = formatTemperatureHTML(temp);
+
+    let windIcon = 'wind';
+    // Use specific wind icons only if wind speed is defined and within range 0-12
+    if (windSpeed !== undefined && windSpeed >= 0 && windSpeed < 13) {
+         windIcon = `wind-${Math.floor(windSpeed)}`; // Use integer part for icon name
+    }
+    const windHTML = `<img class='icon image1' src='${COMMON_IMAGE_PATH}${windIcon}.svg' alt='wind' /><div>${windSpeed ?? '--'}<sup>m/s</sup></div>`; // Use ?? for nullish coalescing
+
+    const thunderIcon = (adjustedSymbol1h && adjustedSymbol1h.includes("thunder"))
+        ? `<img class='icon image2' src='${COMMON_IMAGE_PATH}thunder.svg' alt='thunder' />`
+        : "";
+    const precipitationHTML = `<div class='parent'><img class='icon' src='${COMMON_IMAGE_PATH}umbrella.svg' alt='umbrella' />${thunderIcon}</div><div>${precipitationProb ?? '--'}<sup>%</sup></div>`;
+
+    return `<div class='daycontainer'>
+                <div class='item propscontainer'>
+                    ${windHTML}
+                    ${precipitationHTML}
+                </div>
+                ${conditionImage}
+                ${temperatureHTML}
+            </div>`;
+};
+
+/**
+ * Generates HTML for a single forecast day (today or future).
+ * @param {string} isoDateTimeString - ISO string for the forecast time (e.g., "2024-02-02T06:00:00Z").
+ * @param {object} forecastData6h - Data for 'next_6_hours'.
+ * @param {object} [forecastData12h] - Optional data for 'next_12_hours'.
+ * @param {Date} currentTime - Current time (used for today's forecast).
+ * @param {object} sunTimes - Sunrise/sunset times.
+ * @param {boolean} isTodaySummary - Flag if this is the summary part for today.
+ * @returns {string} HTML string.
+ */
+const createForecastDayHTML = (isoDateTimeString, forecastData6h, forecastData12h, currentTime, sunTimes, isTodaySummary = false) => {
+    const maxTemp = forecastData6h?.air_temperature_max;
+    const minTemp = forecastData6h?.air_temperature_min;
+    // Prioritize 12h symbol if available, otherwise use 6h
+    let symbolCode = forecastData12h?.symbol_code ?? forecastData6h?.symbol_code;
+
+    // Adjust symbol: Use daytime for future days, adjust based on current time for today's summary
+    if (symbolCode) {
+        symbolCode = isTodaySummary
+            ? adjustSymbolForDaytime(symbolCode, currentTime, sunTimes)
+            : symbolCode.replace('_night', '_day'); // Assume daytime for future forecast summaries
+    } else {
+        symbolCode = 'default'; // Fallback symbol
+    }
+
+
+    const timeHTML = `<div class='item time'>${formatDateEstonian(isoDateTimeString)}</div>`;
+    const conditionImage = `<img class='conditionpic' src='${IMAGE_PATH}${symbolCode}${IMAGE_EXT}' alt='${symbolCode}' />`;
+    const maxTempHTML = `<div class='item tempmax'>${maxTemp ?? '--'}&deg;</div>`; // Use ??
+    const minTempHTML = `<div class='item tempmin'>${minTemp ?? '--'}&deg;</div>`; // Use ??
+
+    const containerClass = 'daycontainer';
+
+    return `<div class='${containerClass}'>
+                ${timeHTML}
+                ${conditionImage}
+                ${maxTempHTML}
+                ${minTempHTML}
+            </div>`;
+};
+
+
+/**
+ * Updates the display with status messages or error messages.
+ * @param {string} message - The message to display.
+ * @param {boolean} isError - If true, style as an error.
+ */
+const updateStatus = (message, isError = false) => {
+    if (!weatherContainer) return; // Don't try to update if container doesn't exist
+    console.log(isError ? "Error:" : "Status:", message);
+    weatherContainer.innerHTML = message;
+    weatherContainer.style.color = isError ? 'red' : 'inherit'; // Simple error styling
+};
+
+// --- Main Weather Fetching and Display Logic ---
+const fetchAndDisplayWeather = async () => {
+    const now = new Date();
+    // Base date for calculations, adjusted for timezone for correct date part
+    const baseDateForISO = new Date(now.getTime() - now.getTimezoneOffset() * MS_IN_MINUTE);
+
+    updateStatus("Fetching weather data...");
+
+    const apiUrl = `${API_URL}?lat=${LATITUDE}&lon=${LONGITUDE}`;
+
+    try {
+        const response = await fetch(apiUrl);
+        if (!response.ok) {
+            throw new Error(`API request failed: ${response.status} ${response.statusText}`);
+        }
+        const data = await response.json();
+
+        if (!data?.properties?.timeseries) {
+             throw new Error("Invalid API response structure.");
+        }
+        const timeseries = data.properties.timeseries;
+
+        // --- Get Sun Times ---
+        updateStatus("Calculating sun times...");
+        const sunTimes = SunCalc.getTimes(now, LATITUDE, LONGITUDE);
+        console.log(`Sunrise: ${sunTimes.sunrise}, Sunset: ${sunTimes.sunset}`);
+
+        // --- Process Today's Weather ---
+        updateStatus("Processing today's weather...");
+        const todayHourKey = getFutureDateString(baseDateForISO, 0, now.getHours()); // e.g., "2024-02-02T14"
+        console.log(`DATE TODAY:`, todayHourKey);
+        const todayISOString = `${todayHourKey}:00:00Z`; // For formatting
+
+        const todayInstant = findAndExtractValues(timeseries, todayHourKey, "instant", ["air_temperature", "wind_speed"]);
+        const todayNext1h = findAndExtractValues(timeseries, todayHourKey, "next_1_hours", ["symbol_code", "probability_of_precipitation"]);
+        const todayNext6h = findAndExtractValues(timeseries, todayHourKey, "next_6_hours", ["air_temperature_max", "air_temperature_min", "symbol_code"]);
+
+        let combinedHTML = "";
+
+        // Create HTML for current conditions
+        combinedHTML += createCurrentWeatherHTML(todayInstant, todayNext1h, now, sunTimes);
+
+        // Create HTML for today's forecast summary (using 6h data)
+        if (todayNext6h) {
+            combinedHTML += createForecastDayHTML(todayISOString, todayNext6h, null, now, sunTimes, true); // Pass true for isTodaySummary
+        } else {
+             console.warn("Could not get 6-hour forecast data for today's summary.");
+        }
+
+
+        // --- Process Future Days ---
+        updateStatus(`Processing forecast for ${NUM_OF_DAYS_FORECAST} day(s)...`);
+        let futureForecastHTML = "";
+        for (let j = 1; j <= NUM_OF_DAYS_FORECAST; j++) {
+            // Target 6 AM for the daily forecast summary
+            const dayForecastKey = getFutureDateString(baseDateForISO, j, 6); // e.g., "2024-02-03T06"
+            console.log(`DATE FUTURE:`, dayForecastKey);
+            const dayISOString = `${dayForecastKey}:00:00Z`; // For formatting
+
+            updateStatus(`Processing forecast for ${formatDateEstonian(dayISOString)}...`);
+
+            const futureNext6h = findAndExtractValues(timeseries, dayForecastKey, "next_6_hours", ["air_temperature_max", "air_temperature_min", "symbol_code"]);
+            const futureNext12h = findAndExtractValues(timeseries, dayForecastKey, "next_12_hours", ["symbol_code"]);
+
+            if (futureNext6h) { // Need at least 6h data to show anything meaningful
+                 futureForecastHTML += createForecastDayHTML(dayISOString, futureNext6h, futureNext12h, now, sunTimes);
+            } else {
+                 console.warn(`Could not get 6-hour forecast data for ${dayForecastKey}. Skipping day.`);
+                 // Optionally add a placeholder: 
+                 futureForecastHTML += `<div>No forecast available for ${formatDateEstonian(dayISOString)}</div>`;
+            }
+        }
+
+        // --- Update DOM ---
+        updateStatus("Displaying weather...");
+        if (weatherContainer) {
+            weatherContainer.innerHTML = combinedHTML + futureForecastHTML;
+            weatherContainer.style.color = 'inherit'; // Reset color if it was set to red
+        }
+        console.log("Weather refreshed at " + new Date());
+
+    } catch (error) {
+        console.error("Failed to fetch or process weather data:", error);
+        updateStatus(`ERROR: ${error.message}`, true);
+    }
+};
+
+// --- Initial Load ---
+// Ensure SunCalc is loaded before running
+if (typeof SunCalc !== 'undefined') {
+    fetchAndDisplayWeather();
+    // Optional: Set an interval to refresh the weather periodically
+    setInterval(fetchAndDisplayWeather, 30 * MS_IN_MINUTE); // Refresh every 30 minutes
+} else {
+    updateStatus("Error: SunCalc library not loaded.", true);
+}
