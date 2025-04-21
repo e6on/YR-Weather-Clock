@@ -296,7 +296,7 @@ const fetchAndDisplayWeather = async () => {
     // Base date for calculations, adjusted for timezone for correct date part
     const baseDateForISO = new Date(now.getTime() - now.getTimezoneOffset() * MS_IN_MINUTE);
 
-    updateStatus("Fetching weather data...");
+    console.log("Fetching weather data...");
 
     const apiUrl = `${API_URL}?lat=${LATITUDE}&lon=${LONGITUDE}`;
 

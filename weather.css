@@ -129,3 +129,136 @@ sup {
     top: 0px;
     left: 0px;
 }
+
+/* --- Skeleton Loader Styles for Weather (Refined) --- */
+
+.weather-skeleton {
+    /* If the skeleton replaces the entire .maincontainer content */
+    display: flex;
+    flex-direction: row;
+    justify-content: space-around;
+    align-items: center;
+    height: 100vh; /* Match .maincontainer if needed */
+    width: 100%;
+}
+
+/* Base styles for all skeleton placeholder elements */
+.weather-skeleton .skeleton-box,
+.weather-skeleton .skeleton-line {
+    background-color: #333; /* Darker grey for dark background */
+    border-radius: 4px;
+    opacity: 0.7; /* Make them slightly transparent */
+}
+
+/* Animation for loading indication */
+@keyframes pulse-dark {
+    0% { background-color: #333; }
+    50% { background-color: #444; } /* Slightly lighter grey */
+    100% { background-color: #333; }
+}
+
+.weather-skeleton .skeleton-box,
+.weather-skeleton .skeleton-line {
+    animation: pulse-dark 1.8s infinite ease-in-out;
+}
+
+/* --- Mimicking .daycontainer layout --- */
+.weather-skeleton .skeleton-item {
+    display: grid;
+    /* Match grid definition from .daycontainer */
+    grid-template-columns: auto min-content;
+    grid-template-rows: min-content 70px 70px; /* Match row heights */
+    /* Define areas - these will be used by forecast items */
+    grid-template-areas:
+        "head head"
+        "condimage tmax"
+        "condimage tmin";
+    padding: 10px 5px;          /* Match padding */
+    border-bottom: 1px solid #222; /* Separator for dark theme */
+    min-height: 150px;          /* Approximate height based on rows */
+    box-sizing: border-box;
+    gap: 5px 10px; /* Approximate row and column gap */
+}
+
+/* --- Skeleton Placeholders --- */
+
+/* Placeholder for the head area */
+.weather-skeleton .skeleton-head {
+    grid-area: head;
+    align-self: center; /* Center vertically */
+}
+
+/* Placeholder for condition image */
+.weather-skeleton .skeleton-condimage {
+    grid-area: condimage;
+    align-self: center; /* Match real element */
+    justify-self: center; /* Center horizontally */
+    width: 120px;  /* Approximate width */
+    height: 120px; /* Approximate height */
+    border-radius: 8px;
+}
+
+
+/* --- Current Weather Specific Skeleton --- */
+.weather-skeleton .skeleton-item-current .skeleton-head {
+    /* Contains propscontainer */
+    display: flex;
+    flex-direction: column;
+    gap: 8px; /* Space between lines */
+}
+.weather-skeleton .skeleton-item-current .skeleton-head .skeleton-line {
+    height: 1em; /* Approx height of icon+text line */
+    width: 150px; /* Approx width */
+    align-self: center;
+}
+
+/* Placeholder mimicking the large .temp element */
+.weather-skeleton .skeleton-item-current .skeleton-temp-large {
+    /* Explicitly place like the real .temp */
+    grid-row: 2 / span 2;
+    grid-column: 2;
+    justify-self: center; /* Match real element */
+    align-self: center;   /* Match real element */
+    width: 80px; /* Approximate width of large temp */
+    height: 110px; /* Approximate height of large temp */
+}
+/* Hide forecast temp placeholders in current weather skeleton */
+.weather-skeleton .skeleton-item-current .skeleton-tmax,
+.weather-skeleton .skeleton-item-current .skeleton-tmin {
+    display: none;
+}
+
+
+/* --- Forecast Day Specific Skeleton --- */
+
+/* Placeholder mimicking .time */
+.weather-skeleton .skeleton-item-forecast .skeleton-time {
+    height: 1em; /* Approx height of date text (30px font) */
+    width: 150px; /* Approx width of date text */
+    justify-self: center; /* Center horizontally */
+}
+
+/* Placeholder mimicking .tempmax */
+.weather-skeleton .skeleton-item-forecast .skeleton-tmax {
+    grid-area: tmax;
+    align-self: end; /* Match real element */
+    justify-self: center; /* Center horizontally */
+    height: 1.3em; /* Approx height of temp text (40px font) */
+    width: 60px; /* Approx width of temp text "12°" */
+}
+
+/* Placeholder mimicking .tempmin */
+.weather-skeleton .skeleton-item-forecast .skeleton-tmin {
+    grid-area: tmin;
+    align-self: start; /* Match real element */
+    justify-self: center; /* Center horizontally */
+    height: 1.3em; /* Approx height of temp text (40px font) */
+    width: 60px; /* Approx width of temp text "12°" */
+}
+/* Hide current temp placeholder in forecast skeleton */
+.weather-skeleton .skeleton-item-forecast .skeleton-temp-large {
+     display: none;
+}
+
+
+/* --- End Skeleton Loader Styles --- */
