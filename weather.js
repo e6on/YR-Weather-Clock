@@ -14,6 +14,10 @@ const MS_IN_MINUTE = 60000;
 const MS_IN_HOUR = 3600000;
 const MS_IN_DAY = 86400000;
 
+// --- Constants for Retry ---
+const MAX_FETCH_RETRIES = 3; // Maximum number of fetch attempts
+const RETRY_DELAY_MS = 5000; // Delay between retries in milliseconds (e.g., 5 seconds)
+
 // --- DOM Elements ---
 // Cache the container element for efficiency
 const weatherContainer = document.querySelector(WEATHER_CONTAINER_SELECTOR);
@@ -122,12 +126,12 @@ const findAndExtractValues = (timeseries, timeKey, duration, keys) => {
             const values = extractValues(timeData, duration, keys);
             // Ensure we actually got *some* of the requested keys for this duration
             if (Object.keys(values).length > 0) {
-                 console.log(`Exact match found for ${timeKey}, duration ${duration}`);
-                 return values;
+                console.log(`Exact match found for ${timeKey}, duration ${duration}`);
+                return values;
             }
         }
     }
-     console.log(`No exact match or no relevant data for ${timeKey}, duration ${duration}. Trying fallback.`);
+    console.log(`No exact match or no relevant data for ${timeKey}, duration ${duration}. Trying fallback.`);
 
 
     // 2. Try fallback to nearest previous standard hour (00, 06, 12, 18) on the same day
@@ -146,7 +150,7 @@ const findAndExtractValues = (timeseries, timeKey, duration, keys) => {
         for (const timeData of timeseries) {
             if (timeData.time.startsWith(fallbackTimeKey)) {
                 const values = extractValues(timeData, duration, keys);
-                 if (Object.keys(values).length > 0) {
+                if (Object.keys(values).length > 0) {
                     console.log(`Fallback match found at ${fallbackTimeKey} for original ${timeKey}, duration ${duration}`);
                     return values;
                 }
@@ -217,7 +221,7 @@ const createCurrentWeatherHTML = (instantData, next1hData, currentTime, sunTimes
     let windIcon = 'wind';
     // Use specific wind icons only if wind speed is defined and within range 0-12
     if (windSpeed !== undefined && windSpeed >= 0 && windSpeed < 13) {
-         windIcon = `wind-${Math.floor(windSpeed)}`; // Use integer part for icon name
+        windIcon = `wind-${Math.floor(windSpeed)}`; // Use integer part for icon name
     }
     const windHTML = `<img class='icon image1' src='${COMMON_IMAGE_PATH}${windIcon}.svg' alt='wind' /><div>${windSpeed ?? '--'}<sup>m/s</sup></div>`; // Use ?? for nullish coalescing
 
@@ -291,14 +295,13 @@ const updateStatus = (message, isError = false) => {
 };
 
 // --- Main Weather Fetching and Display Logic ---
-const fetchAndDisplayWeather = async () => {
+const fetchAndDisplayWeather = async (currentAttempt = 1) => {
     const now = new Date();
     // Base date for calculations, adjusted for timezone for correct date part
     const baseDateForISO = new Date(now.getTime() - now.getTimezoneOffset() * MS_IN_MINUTE);
 
-    console.log("Fetching weather data...");
-
     const apiUrl = `${API_URL}?lat=${LATITUDE}&lon=${LONGITUDE}`;
+    console.log(`Fetching weather data... (Attempt ${currentAttempt}/${MAX_FETCH_RETRIES})`);
 
     try {
         const response = await fetch(apiUrl);
@@ -308,7 +311,7 @@ const fetchAndDisplayWeather = async () => {
         const data = await response.json();
 
         if (!data?.properties?.timeseries) {
-             throw new Error("Invalid API response structure.");
+            throw new Error("Invalid API response structure.");
         }
         const timeseries = data.properties.timeseries;
 
@@ -336,7 +339,7 @@ const fetchAndDisplayWeather = async () => {
         if (todayNext6h) {
             combinedHTML += createForecastDayHTML(todayISOString, todayNext6h, null, now, sunTimes, true); // Pass true for isTodaySummary
         } else {
-             console.warn("Could not get 6-hour forecast data for today's summary.");
+            console.warn("Could not get 6-hour forecast data for today's summary.");
         }
 
 
@@ -355,11 +358,11 @@ const fetchAndDisplayWeather = async () => {
             const futureNext12h = findAndExtractValues(timeseries, dayForecastKey, "next_12_hours", ["symbol_code"]);
 
             if (futureNext6h) { // Need at least 6h data to show anything meaningful
-                 futureForecastHTML += createForecastDayHTML(dayISOString, futureNext6h, futureNext12h, now, sunTimes);
+                futureForecastHTML += createForecastDayHTML(dayISOString, futureNext6h, futureNext12h, now, sunTimes);
             } else {
-                 console.warn(`Could not get 6-hour forecast data for ${dayForecastKey}. Skipping day.`);
-                 // Optionally add a placeholder: 
-                 futureForecastHTML += `<div>No forecast available for ${formatDateEstonian(dayISOString)}</div>`;
+                console.warn(`Could not get 6-hour forecast data for ${dayForecastKey}. Skipping day.`);
+                // Optionally add a placeholder: 
+                futureForecastHTML += `<div>No forecast available for ${formatDateEstonian(dayISOString)}</div>`;
             }
         }
 
@@ -369,20 +372,28 @@ const fetchAndDisplayWeather = async () => {
             weatherContainer.innerHTML = combinedHTML + futureForecastHTML;
             weatherContainer.style.color = 'inherit'; // Reset color if it was set to red
         }
-        console.log("Weather refreshed at " + new Date());
+        console.log("Weather refreshed successfully at " + new Date());
 
     } catch (error) {
-        console.error("Failed to fetch or process weather data:", error);
-        updateStatus(`ERROR: ${error.message}`, true);
+        console.error(`Failed to fetch or process weather data (attempt ${currentAttempt}/${MAX_FETCH_RETRIES}):`, error);
+        if (currentAttempt < MAX_FETCH_RETRIES) {
+            const nextAttempt = currentAttempt + 1;
+            updateStatus(`Failed to load weather. Retrying in ${RETRY_DELAY_MS / 1000}s... (Attempt ${nextAttempt}/${MAX_FETCH_RETRIES})`, true);
+            setTimeout(() => fetchAndDisplayWeather(nextAttempt), RETRY_DELAY_MS);
+        } else {
+            console.error("All retries failed for weather data.");
+            updateStatus(`ERROR: Failed to load weather after ${MAX_FETCH_RETRIES} attempts. ${error.message}`, true);
+        }
     }
 };
 
 // --- Initial Load ---
 // Ensure SunCalc is loaded before running
 if (typeof SunCalc !== 'undefined') {
-    fetchAndDisplayWeather();
+    fetchAndDisplayWeather(); // Initial call, will use default currentAttempt = 1
     // Optional: Set an interval to refresh the weather periodically
-    setInterval(fetchAndDisplayWeather, 30 * MS_IN_MINUTE); // Refresh every 30 minutes
+    // Each call from setInterval will also start with attempt 1 for its refresh cycle
+    setInterval(() => fetchAndDisplayWeather(), 30 * MS_IN_MINUTE); // Refresh every 30 minutes
 } else {
     updateStatus("Error: SunCalc library not loaded.", true);
 }
