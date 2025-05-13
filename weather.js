@@ -251,8 +251,8 @@ const createCurrentWeatherHTML = (instantData, next1hData, currentTime, sunTimes
  * @returns {string} HTML string.
  */
 const createForecastDayHTML = (isoDateTimeString, forecastData6h, forecastData12h, currentTime, sunTimes, isTodaySummary = false) => {
-    const maxTemp = forecastData6h?.air_temperature_max;
-    const minTemp = forecastData6h?.air_temperature_min;
+    const maxTemp = forecastData6h?.air_temperature_max !== undefined ? Math.round(forecastData6h.air_temperature_max) : undefined;
+    const minTemp = forecastData6h?.air_temperature_min !== undefined ? Math.round(forecastData6h.air_temperature_min) : undefined;
     // Prioritize 12h symbol if available, otherwise use 6h
     let symbolCode = forecastData12h?.symbol_code ?? forecastData6h?.symbol_code;
 
