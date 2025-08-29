@@ -68,6 +68,11 @@ const getFutureDateString = (baseDate, daysOffset, hour) => {
 };
 
 /**
+ * Estonian short month names for robust formatting.
+ */
+const ESTONIAN_SHORT_MONTHS = ['JAAN', 'VEEBR', 'MÄRTS', 'APR', 'MAI', 'JUUNI', 'JUULI', 'AUG', 'SEPT', 'OKT', 'NOV', 'DETS'];
+
+/**
  * Formats an ISO date string (like "2024-02-01T13:00:00Z") into Estonian locale format.
  * @param {string} isoString - The ISO date string.
  * @returns {string} Formatted date string (e.g., "&nbsp;<span>N</span>&nbsp;&nbsp;1&nbsp;VEEBR").
@@ -78,7 +83,8 @@ const formatDateEstonian = (isoString) => {
         // No need to manually adjust timezone offset if using localeString options correctly
         const dayInitial = date.toLocaleDateString('et-EE', { weekday: 'short' }).charAt(0).toUpperCase();
         const dayOfMonth = date.getDate();
-        const monthName = date.toLocaleDateString('et-EE', { month: 'short' }).toUpperCase().replace('.', ''); // Remove dot if present
+        const monthIndex = date.getMonth(); // 0-11
+        const monthName = ESTONIAN_SHORT_MONTHS[monthIndex];
 
         return `&nbsp;<span>${dayInitial}</span>&nbsp;&nbsp;${dayOfMonth}&nbsp;${monthName}`;
     } catch (e) {
