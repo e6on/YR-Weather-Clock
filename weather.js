@@ -18,6 +18,25 @@ const MS_IN_DAY = 86400000;
 const MAX_FETCH_RETRIES = 3; // Maximum number of fetch attempts
 const RETRY_DELAY_MS = 5000; // Delay between retries in milliseconds (e.g., 5 seconds)
 
+// --- API Data Constants ---
+const API_KEYS = {
+    // Instant
+    AIR_TEMP: "air_temperature",
+    WIND_SPEED: "wind_speed",
+    // Next 1 hour
+    SYMBOL_CODE: "symbol_code",
+    PRECIP_PROB: "probability_of_precipitation",
+    // Next 6/12 hours
+    AIR_TEMP_MAX: "air_temperature_max",
+    AIR_TEMP_MIN: "air_temperature_min",
+};
+const API_DURATIONS = {
+    INSTANT: "instant",
+    NEXT_1_H: "next_1_hours",
+    NEXT_6_H: "next_6_hours",
+    NEXT_12_H: "next_12_hours",
+};
+
 // --- DOM Elements ---
 // Cache the container element for efficiency
 const weatherContainer = document.querySelector(WEATHER_CONTAINER_SELECTOR);
@@ -34,7 +53,7 @@ if (!weatherContainer) {
  * @param {number} num - The number to format.
  * @returns {string} Formatted number string.
  */
-const addZero = (num) => (num < 10 ? '0' : '') + num;
+const addZero = (num) => String(num).padStart(2, '0');
 
 /**
  * Calculates a future date string in YYYY-MM-DDTHH format.
@@ -44,27 +63,19 @@ const addZero = (num) => (num < 10 ? '0' : '') + num;
  * @returns {string} Date string in YYYY-MM-DDTHH format (e.g., "2024-02-01T06").
  */
 const getFutureDateString = (baseDate, daysOffset, hour) => {
-    // Ensure hour is provided, as the target format requires it.
     if (hour === undefined || hour === null || hour < 0 || hour > 23) {
         console.error("getFutureDateString requires a valid hour (0-23).");
-        // Return a default/error indicator or throw an error
         return "INVALID_DATE_FORMAT";
-        // Or: throw new Error("getFutureDateString requires a valid hour (0-23).");
     }
 
-    const targetDate = new Date(baseDate.getTime() + daysOffset * MS_IN_DAY);
+    const targetDate = new Date(baseDate); // Create a copy to avoid modifying the original
+    targetDate.setDate(targetDate.getDate() + daysOffset);
 
-    // Adjust for timezone offset to get correct date part relative to local time
-    // before converting to ISO string (which is UTC based)
-    const adjustedDate = new Date(targetDate.getTime() - targetDate.getTimezoneOffset() * MS_IN_MINUTE);
+    const year = targetDate.getFullYear();
+    const month = addZero(targetDate.getMonth() + 1);
+    const day = addZero(targetDate.getDate());
 
-    const isoString = adjustedDate.toISOString(); // e.g., "2024-02-01T10:30:00.000Z"
-
-    // Extract the date part "YYYY-MM-DD"
-    const datePart = isoString.slice(0, 10);
-
-    // Combine date part with "T" and the zero-padded hour
-    return `${datePart}T${addZero(hour)}`; // e.g., "2024-02-01T06"
+    return `${year}-${month}-${day}T${addZero(hour)}`;
 };
 
 /**
@@ -287,6 +298,48 @@ const createForecastDayHTML = (isoDateTimeString, forecastData6h, forecastData12
             </div>`;
 };
 
+/**
+ * Generates the HTML for a single skeleton-loader item.
+ * @param {boolean} isCurrent - True for the current weather item, false for a forecast item.
+ * @returns {string} HTML string for a skeleton item.
+ */
+const createSkeletonItemHTML = (isCurrent) => {
+    if (isCurrent) {
+        return `
+            <div class="daycontainer skeleton-item skeleton-item-current">
+                <div class="item propscontainer skeleton-head">
+                    <div class="skeleton-line" style="width: 170px; height: 1em; margin-bottom: 5px;"></div>
+                </div>
+                <div class="skeleton-box skeleton-condimage"></div>
+                <div class="skeleton-box skeleton-temp-large"></div>
+            </div>`;
+    }
+    return `
+        <div class="daycontainer skeleton-item skeleton-item-forecast">
+            <div class="item time skeleton-head skeleton-time skeleton-line"></div>
+            <div class="skeleton-box skeleton-condimage"></div>
+            <div class="skeleton-line skeleton-tmax"></div>
+            <div class="skeleton-line skeleton-tmin"></div>
+        </div>`;
+};
+
+/**
+ * Renders a skeleton loader UI in the weather container.
+ */
+const displaySkeletonLoader = () => {
+    if (!weatherContainer) return;
+
+    let skeletonHTML = createSkeletonItemHTML(true); // Current weather
+    // +1 for today's summary forecast
+    for (let i = 0; i < NUM_OF_DAYS_FORECAST + 1; i++) {
+        skeletonHTML += createSkeletonItemHTML(false);
+    }
+
+    // The CSS in weather.css uses a `.weather-skeleton` class on the container
+    // to apply the pulsing animation to children.
+    weatherContainer.classList.add('weather-skeleton');
+    weatherContainer.innerHTML = skeletonHTML;
+};
 
 /**
  * Updates the display with status messages or error messages.
@@ -294,19 +347,65 @@ const createForecastDayHTML = (isoDateTimeString, forecastData6h, forecastData12
  * @param {boolean} isError - If true, style as an error.
  */
 const updateStatus = (message, isError = false) => {
-    if (!weatherContainer) return; // Don't try to update if container doesn't exist
     console.log(isError ? "Error:" : "Status:", message);
-    weatherContainer.innerHTML = message;
-    weatherContainer.style.color = isError ? 'red' : 'inherit'; // Simple error styling
+    // Only update the DOM for critical errors, as the skeleton loader handles the loading state.
+    if (isError && weatherContainer) {
+        weatherContainer.classList.remove('weather-skeleton'); // Remove skeleton styling
+        weatherContainer.innerHTML = `<div style="text-align: center; padding: 20px;">${message}</div>`;
+        weatherContainer.style.color = 'red';
+    }
+};
+
+/**
+ * Renders the complete weather forecast UI from processed data.
+ * @param {object} weatherData - An object containing all necessary data for rendering.
+ */
+const renderWeather = (weatherData) => {
+    if (!weatherContainer) return;
+
+    const { current, todaySummary, forecasts, sunTimes, now } = weatherData;
+
+    // Create HTML for current conditions
+    const currentWeatherHTML = createCurrentWeatherHTML(current.instant, current.next1h, now, sunTimes);
+
+    // Create HTML for today's forecast summary
+    let todaySummaryHTML = "";
+    if (todaySummary.next6h) {
+        todaySummaryHTML = createForecastDayHTML(todaySummary.isoString, todaySummary.next6h, null, now, sunTimes, true);
+    } else {
+        console.warn("Could not get 6-hour forecast data for today's summary.");
+    }
+
+    // Create HTML for future days
+    const futureForecastHTML = forecasts.map(day => {
+        if (day.next6h) {
+            // Pass `now` and `sunTimes` though they are only used for today's summary, for function signature consistency
+            return createForecastDayHTML(day.isoString, day.next6h, day.next12h, now, sunTimes);
+        }
+        console.warn(`Could not get 6-hour forecast data for ${day.key}. Skipping day.`);
+        return `<div class="daycontainer" style="align-items: center; justify-content: center; color: #777;">
+                    <div class='item time'>${formatDateEstonian(day.isoString)}</div>
+                    <div>No forecast</div>
+                </div>`;
+    }).join('');
+
+    // --- Update DOM ---
+    weatherContainer.classList.remove('weather-skeleton');
+    weatherContainer.innerHTML = currentWeatherHTML + todaySummaryHTML + futureForecastHTML;
+    console.log("Weather refreshed successfully at " + new Date());
 };
 
 // --- Main Weather Fetching and Display Logic ---
 const fetchAndDisplayWeather = async (currentAttempt = 1) => {
     const now = new Date();
-    // Base date for calculations, adjusted for timezone for correct date part
-    const baseDateForISO = new Date(now.getTime() - now.getTimezoneOffset() * MS_IN_MINUTE);
 
     const apiUrl = `${API_URL}?lat=${LATITUDE}&lon=${LONGITUDE}`;
+
+    // Display skeleton loader on first attempt of a fetch cycle
+    if (currentAttempt === 1) {
+        displaySkeletonLoader();
+    }
+
     console.log(`Fetching weather data... (Attempt ${currentAttempt}/${MAX_FETCH_RETRIES})`);
 
     try {
@@ -322,63 +421,45 @@ const fetchAndDisplayWeather = async (currentAttempt = 1) => {
         const timeseries = data.properties.timeseries;
 
         // --- Get Sun Times ---
-        updateStatus("Calculating sun times...");
         const sunTimes = SunCalc.getTimes(now, LATITUDE, LONGITUDE);
         console.log(`Sunrise: ${sunTimes.sunrise}, Sunset: ${sunTimes.sunset}`);
 
         // --- Process Today's Weather ---
-        updateStatus("Processing today's weather...");
-        const todayHourKey = getFutureDateString(baseDateForISO, 0, now.getHours()); // e.g., "2024-02-02T14"
+        const todayHourKey = getFutureDateString(now, 0, now.getHours()); // e.g., "2024-02-02T14"
         console.log(`DATE TODAY:`, todayHourKey);
         const todayISOString = `${todayHourKey}:00:00Z`; // For formatting
 
-        const todayInstant = findAndExtractValues(timeseries, todayHourKey, "instant", ["air_temperature", "wind_speed"]);
-        const todayNext1h = findAndExtractValues(timeseries, todayHourKey, "next_1_hours", ["symbol_code", "probability_of_precipitation"]);
-        const todayNext6h = findAndExtractValues(timeseries, todayHourKey, "next_6_hours", ["air_temperature_max", "air_temperature_min", "symbol_code"]);
-
-        let combinedHTML = "";
-
-        // Create HTML for current conditions
-        combinedHTML += createCurrentWeatherHTML(todayInstant, todayNext1h, now, sunTimes);
-
-        // Create HTML for today's forecast summary (using 6h data)
-        if (todayNext6h) {
-            combinedHTML += createForecastDayHTML(todayISOString, todayNext6h, null, now, sunTimes, true); // Pass true for isTodaySummary
-        } else {
-            console.warn("Could not get 6-hour forecast data for today's summary.");
-        }
-
+        const weatherData = {
+            now,
+            sunTimes,
+            current: {
+                instant: findAndExtractValues(timeseries, todayHourKey, API_DURATIONS.INSTANT, [API_KEYS.AIR_TEMP, API_KEYS.WIND_SPEED]),
+                next1h: findAndExtractValues(timeseries, todayHourKey, API_DURATIONS.NEXT_1_H, [API_KEYS.SYMBOL_CODE, API_KEYS.PRECIP_PROB]),
+            },
+            todaySummary: {
+                isoString: todayISOString,
+                next6h: findAndExtractValues(timeseries, todayHourKey, API_DURATIONS.NEXT_6_H, [API_KEYS.AIR_TEMP_MAX, API_KEYS.AIR_TEMP_MIN, API_KEYS.SYMBOL_CODE]),
+            },
+            forecasts: []
+        };
 
         // --- Process Future Days ---
-        updateStatus(`Processing forecast for ${NUM_OF_DAYS_FORECAST} day(s)...`);
-        let futureForecastHTML = "";
         for (let j = 1; j <= NUM_OF_DAYS_FORECAST; j++) {
             // Target 6 AM for the daily forecast summary
-            const dayForecastKey = getFutureDateString(baseDateForISO, j, 6); // e.g., "2024-02-03T06"
+            const dayForecastKey = getFutureDateString(now, j, 6); // e.g., "2024-02-03T06"
             console.log(`DATE FUTURE:`, dayForecastKey);
             const dayISOString = `${dayForecastKey}:00:00Z`; // For formatting
 
-            updateStatus(`Processing forecast for ${formatDateEstonian(dayISOString)}...`);
-
-            const futureNext6h = findAndExtractValues(timeseries, dayForecastKey, "next_6_hours", ["air_temperature_max", "air_temperature_min", "symbol_code"]);
-            const futureNext12h = findAndExtractValues(timeseries, dayForecastKey, "next_12_hours", ["symbol_code"]);
-
-            if (futureNext6h) { // Need at least 6h data to show anything meaningful
-                futureForecastHTML += createForecastDayHTML(dayISOString, futureNext6h, futureNext12h, now, sunTimes);
-            } else {
-                console.warn(`Could not get 6-hour forecast data for ${dayForecastKey}. Skipping day.`);
-                // Optionally add a placeholder: 
-                futureForecastHTML += `<div>No forecast available for ${formatDateEstonian(dayISOString)}</div>`;
-            }
+            weatherData.forecasts.push({
+                key: dayForecastKey,
+                isoString: dayISOString,
+                next6h: findAndExtractValues(timeseries, dayForecastKey, API_DURATIONS.NEXT_6_H, [API_KEYS.AIR_TEMP_MAX, API_KEYS.AIR_TEMP_MIN, API_KEYS.SYMBOL_CODE]),
+                next12h: findAndExtractValues(timeseries, dayForecastKey, API_DURATIONS.NEXT_12_H, [API_KEYS.SYMBOL_CODE]),
+            });
         }
 
         // --- Update DOM ---
-        updateStatus("Displaying weather...");
-        if (weatherContainer) {
-            weatherContainer.innerHTML = combinedHTML + futureForecastHTML;
-            weatherContainer.style.color = 'inherit'; // Reset color if it was set to red
-        }
-        console.log("Weather refreshed successfully at " + new Date());
+        renderWeather(weatherData);
 
     } catch (error) {
         console.error(`Failed to fetch or process weather data (attempt ${currentAttempt}/${MAX_FETCH_RETRIES}):`, error);

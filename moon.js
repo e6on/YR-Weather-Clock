@@ -1,156 +1,158 @@
 /*
-    Defines the function 'drawPlanetPhase' which will render a 'kind of' realistic lunar or planetary disc with
-    shadow.
-
-    The simplest way to call the function is like this:
-
-        drawPlanetPhase(document.getElementById('container'), 0.15, true)
-
-    the first argument is the HTML element that you want to contain the disc
-
-    the second argument must be a value between 0 and 1, indicating how large the shadow should be: 
-           0 = new moon
-        0.25 = crescent
-        0.50 = quarter
-        0.75 = gibbous
-        1.00 = full moon
-
-    the third argument is a boolean value indicating whether the disc should be waxing or waning (ie which 
-    side of the disc the shadow should be on):
-         true = waxing - shadow on the left
-        false = waning - shadow on the right
-
-    the function accepts an optional fourth argument, containing configuration values which change the
-    size, colour and appearance of the disc - see the comments on the 'defaultConfig' object for details.
-
-    Copyright 2014 Rob Dawson
-    http://codebox.org.uk/pages/planet-phase
+ * Defines the function 'drawPlanetPhase' which renders a realistic lunar or planetary disc with a shadow.
+ * This is a modernized version of the original script from http://codebox.org.uk/pages/planet-phase.
+ *
+ * Copyright 2014 Rob Dawson, with modifications.
+ *
+ * @param {HTMLElement} containerEl - The HTML element to contain the disc.
+ * @param {number} phase - A value between 0 and 1 indicating the illumination fraction.
+ *                         0=new, 0.25=crescent, 0.5=quarter, 0.75=gibbous, 1=full.
+ * @param {boolean} isWaxing - True if the disc is waxing (shadow on the left), false if waning.
+ * @param {object} [userConfig={}] - Optional configuration to override default appearance.
 */
 
-var drawPlanetPhase = (function () {
+const drawPlanetPhase = (function () {
     "use strict";
-    /*jslint browser: true, forin: true, white: true */
 
-    function calcInner(outerDiameter, semiPhase) {
-        var innerRadius,
-            absPhase = Math.abs(semiPhase),
-            n = ((1 - absPhase) * outerDiameter / 2) || 0.01;
+    const defaultConfig = {
+        shadowColour: 'black',    // CSS background-color for the shaded part of the disc.
+        lightColour: 'white',     // CSS background-color for the illuminated part.
+        diameter: 100,            // Diameter of the disc in pixels.
+        earthshine: 0.1,          // Amount of light on the shaded part (0=none, 1=full).
+        blur: 3,                  // Blur radius for the terminator line in pixels.
+        moonImage: "url('./images/common/moon.png')" // Path to the texture image.
+    };
 
-        innerRadius = n / 2 + outerDiameter * outerDiameter / (8 * n);
+    /**
+     * Calculates the diameter and offset for the inner (terminator) circle.
+     * @param {number} outerDiameter - The diameter of the main disc.
+     * @param {number} semiPhase - The phase from -1 to 1.
+     * @returns {{d: number, o: number}} Diameter and offset of the inner circle.
+     */
+    const calcInner = (outerDiameter, semiPhase) => {
+        const absPhase = Math.abs(semiPhase);
+        // 'n' is the width of the sliver of the circle that is not shadowed.
+        const n = ((1 - absPhase) * outerDiameter / 2) || 0.01; // Use 0.01 to avoid division by zero.
+
+        const innerRadius = n / 2 + (outerDiameter * outerDiameter) / (8 * n);
 
         return {
             d: innerRadius * 2,
             o: semiPhase > 0 ? (outerDiameter / 2 - n) : (-2 * innerRadius + outerDiameter / 2 + n)
         };
-    }
-
-    function setCss(el, props) {
-        var p;
-        for (p in props) {
-            el.style[p] = props[p];
-        }
-    }
-    function drawDiscs(outer, inner, blurSize) {
-        var blurredDiameter, blurredOffset;
-        setCss(outer.box, {
-            'position': 'relative',
-            'backgroundImage': outer.bgimage,
-            'backgroundSize': outer.diameter + 'px',
-            'backgroundPosition': Math.abs(blurredOffset) + 'px ' + Math.abs(((outer.diameter - blurredDiameter) / 2)) + 'px',
-            'height': outer.diameter + 'px',
-            'width': outer.diameter + 'px',
-            'border': '1px solid black',
-            'backgroundColor': outer.colour,
-            'borderRadius': (outer.diameter / 2) + 'px',
-            'overflow': 'hidden'
-        });
-
-        blurredDiameter = inner.diameter - blurSize;
-        blurredOffset = inner.offset + blurSize / 2;
-        var bgPosFix = outer.diameter - inner.offset * 2;
-
-        setCss(inner.box, {
-            'position': 'absolute',
-            'backgroundImage': inner.bgimage,
-            'backgroundSize': outer.diameter + 'px',
-            'backgroundPosition': Math.abs(blurredOffset + bgPosFix) + 'px ' + Math.abs(((outer.diameter - blurredDiameter) / 2)) + 'px',
-            'backgroundColor': inner.colour,
-            'borderRadius': (blurredDiameter / 2) + 'px',
-            'height': blurredDiameter + 'px',
-            'width': blurredDiameter + 'px',
-            'left': blurredOffset + 'px',
-            'top': ((outer.diameter - blurredDiameter) / 2) + 'px',
-            'boxShadow': '0px 0px ' + blurSize + 'px ' + blurSize + 'px ' + inner.colour,
-            'opacity': inner.opacity
-        });
-    }
-    function makeDiv(container) {
-        var div = document.createElement('div');
-        container.appendChild(div);
-        return div;
-    }
-    function setPhase(outerBox, phase, isWaxing, config) {
-        var innerBox = makeDiv(outerBox),
-            outerColour,
-            innerColour,
-            innerVals;
-
-        if (phase < 0.5) {
-            outerColour = config.lightColour;
-            innerColour = config.shadowColour;
-            if (isWaxing) {
-                phase *= -1;
-            }
-            var outerImage = "url('./images/common/moon.png')";
-            var innerImage = "";
-        } else {
-            outerColour = config.shadowColour;
-            innerColour = config.lightColour;
-            phase = 1 - phase;
-            if (!isWaxing) {
-                phase *= -1;
-            }
-            var outerImage = "";
-            var innerImage = "url('./images/common/moon.png')";
-        }
-
-        innerVals = calcInner(config.diameter, phase * 2);
-
-        drawDiscs({
-            box: outerBox,
-            diameter: config.diameter,
-            colour: outerColour,
-            bgimage: outerImage
-        }, {
-            box: innerBox,
-            diameter: innerVals.d,
-            colour: innerColour,
-            offset: innerVals.o,
-            opacity: 1 - config.earthshine,
-            bgimage: innerImage
-        }, config.blur);
-    }
-
-    var defaultConfig = {
-        shadowColour: 'black', // CSS background-colour value for the shaded part of the disc
-        lightColour: 'white', // CSS background-colour value for the illuminated part of the disc
-        diameter: 100,    // diameter of the moon/planets disc in pixels
-        earthshine: 0.1,    // between 0 and 1, the amount of light falling on the shaded part of the disc 0=none, 1=full illumination
-        blur: 3       // amount of blur on the terminator in pixels, 0=no blur
     };
 
-    function populateMissingConfigValues(config) {
-        var p;
-        for (p in defaultConfig) {
-            config[p] = (config[p] === undefined) ? defaultConfig[p] : config[p];
-        }
-        return config;
-    }
+    /**
+     * Applies a set of CSS properties to an element.
+     * @param {HTMLElement} el - The element to style.
+     * @param {object} props - An object of CSS properties.
+     */
+    const setCss = (el, props) => {
+        Object.assign(el.style, props);
+    };
 
-    return function (containerEl, phase, isWaxing, config) {
-        config = populateMissingConfigValues(Object.create(config || {}));
-        var el = makeDiv(containerEl);
+    /**
+     * Creates and styles the two divs that form the planet and shadow.
+     * @param {object} outer - Properties for the outer disc.
+     * @param {object} inner - Properties for the inner (terminator) disc.
+     * @param {number} blurSize - The pixel size of the terminator blur.
+     */
+    const drawDiscs = (outer, inner, blurSize) => {
+        const blurredDiameter = inner.diameter - blurSize;
+        const blurredOffset = inner.offset + blurSize / 2;
+
+        // This calculation is crucial for keeping the background texture aligned
+        // as the inner (terminator) disc moves across the outer disc. It compensates
+        // for the `left` offset of the inner disc.
+        const bgPosFix = outer.diameter - inner.offset * 2;
+
+        setCss(outer.box, {
+            position: 'relative',
+            backgroundImage: outer.bgImage,
+            backgroundSize: `${outer.diameter}px`,
+            height: `${outer.diameter}px`,
+            width: `${outer.diameter}px`,
+            border: '1px solid black',
+            backgroundColor: outer.colour,
+            borderRadius: `${outer.diameter / 2}px`,
+            overflow: 'hidden'
+        });
+
+        setCss(inner.box, {
+            position: 'absolute',
+            backgroundImage: inner.bgImage,
+            backgroundSize: `${outer.diameter}px`,
+            // The complex backgroundPosition ensures the texture on the inner disc
+            // aligns perfectly with where the texture on the outer disc would be.
+            backgroundPosition: `${Math.abs(blurredOffset + bgPosFix)}px ${Math.abs((outer.diameter - blurredDiameter) / 2)}px`,
+            backgroundColor: inner.colour,
+            borderRadius: `${blurredDiameter / 2}px`,
+            height: `${blurredDiameter}px`,
+            width: `${blurredDiameter}px`,
+            left: `${blurredOffset}px`,
+            top: `${(outer.diameter - blurredDiameter) / 2}px`,
+            boxShadow: `0px 0px ${blurSize}px ${blurSize}px ${inner.colour}`,
+            opacity: inner.opacity
+        });
+    };
+
+    /**
+     * Creates a new div and appends it to a container.
+     * @param {HTMLElement} container - The parent element.
+     * @returns {HTMLElement} The newly created div.
+     */
+    const makeDiv = (container) => {
+        const div = document.createElement('div');
+        container.appendChild(div);
+        return div;
+    };
+
+    /**
+     * Determines disc properties and initiates the drawing.
+     * @param {HTMLElement} outerBox - The container for the main disc.
+     * @param {number} phase - The illumination fraction (0-1).
+     * @param {boolean} isWaxing - True if waxing.
+     * @param {object} config - The final, merged configuration object.
+     */
+    const setPhase = (outerBox, phase, isWaxing, config) => {
+        const innerBox = makeDiv(outerBox);
+
+        const isMostlyDark = phase < 0.5;
+        // The "terminator" is the shadow line. Its curvature depends on the phase.
+        const terminatorPhase = isMostlyDark ? phase : 1 - phase;
+        // The direction of the curve depends on whether it's waxing or waning.
+        const terminatorDirection = ((isMostlyDark && isWaxing) || (!isMostlyDark && !isWaxing)) ? -1 : 1;
+
+        const outerDisc = {
+            box: outerBox,
+            diameter: config.diameter,
+            // If mostly dark, the outer disc is the lit crescent. If mostly light, it's the shadow crescent.
+            colour: isMostlyDark ? config.lightColour : config.shadowColour,
+            bgImage: isMostlyDark ? config.moonImage : 'none',
+        };
+
+        const innerDisc = {
+            box: innerBox,
+            colour: isMostlyDark ? config.shadowColour : config.lightColour,
+            bgImage: isMostlyDark ? 'none' : config.moonImage,
+            opacity: 1 - config.earthshine,
+        };
+
+        // Calculate the geometry of the inner disc which creates the terminator line.
+        const innerVals = calcInner(config.diameter, terminatorPhase * 2 * terminatorDirection);
+        innerDisc.diameter = innerVals.d;
+        innerDisc.offset = innerVals.o;
+
+        drawDiscs(outerDisc, innerDisc, config.blur);
+    };
+
+    return (containerEl, phase, isWaxing, userConfig = {}) => {
+        // Merge user-provided config with defaults.
+        const config = { ...defaultConfig, ...userConfig };
+
+        // Create the main container div for the planet disc.
+        const el = makeDiv(containerEl);
         setPhase(el, phase, isWaxing, config);
     };
 
-}());
+})();

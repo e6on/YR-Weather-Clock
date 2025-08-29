@@ -9,68 +9,54 @@
     </head>
 
     <body>
-        <div class="maincontainer">
-        
-<div class="weather-skeleton">
-    <!-- Skeleton for Current Weather -->
-    <div class="skeleton-item skeleton-item-current">
-        <div class="skeleton-head">
-             <div class="skeleton-line"></div>
-        </div>
-        <div class="skeleton-box skeleton-condimage"></div>
-        <div class="skeleton-box skeleton-temp-large"></div>
-        <!-- tmax/tmin placeholders are implicitly hidden by CSS -->
-    </div>
+        <!--
+            The .weather-skeleton class is added directly to the .maincontainer.
+            This static HTML now matches the structure that weather.js generates,
+            allowing for accurate testing by simply commenting out the script tag below.
+        -->
+        <div class="maincontainer weather-skeleton">
 
-    <!-- Skeleton for Forecast Day 1 -->
-    <div class="skeleton-item skeleton-item-forecast">
-        <div class="skeleton-head">
-            <div class="skeleton-line skeleton-time"></div>
-        </div>
-        <div class="skeleton-box skeleton-condimage"></div>
-        <div class="skeleton-line skeleton-tmax"></div>
-        <div class="skeleton-line skeleton-tmin"></div>
-         <!-- temp-large placeholder is implicitly hidden by CSS -->
-    </div>
+            <!-- Skeleton for Current Weather (matches createSkeletonItemHTML(true)) -->
+            <div class="daycontainer skeleton-item skeleton-item-current">
+                <div class="item propscontainer skeleton-head">
+                    <div class="skeleton-line" style="width: 170px; height: 1em; margin-bottom: 5px;"></div>
+                </div>
+                <div class="skeleton-box skeleton-condimage"></div>
+                <div class="skeleton-box skeleton-temp-large"></div>
+            </div>
 
-    <!-- Skeleton for Forecast Day 2 -->
-    <div class="skeleton-item skeleton-item-forecast">
-        <div class="skeleton-head">
-            <div class="skeleton-line skeleton-time"></div>
-        </div>
-        <div class="skeleton-box skeleton-condimage"></div>
-        <div class="skeleton-line skeleton-tmax"></div>
-        <div class="skeleton-line skeleton-tmin"></div>
-    </div>
+            <!-- Skeletons for Forecasts (matches createSkeletonItemHTML(false)) -->
+            <div class="daycontainer skeleton-item skeleton-item-forecast">
+                <div class="item time skeleton-head skeleton-time skeleton-line"></div>
+                <div class="skeleton-box skeleton-condimage"></div>
+                <div class="skeleton-line skeleton-tmax"></div>
+                <div class="skeleton-line skeleton-tmin"></div>
+            </div>
 
-    <!-- Skeleton for Forecast Day 3 -->
-    <div class="skeleton-item skeleton-item-forecast">
-        <div class="skeleton-head">
-            <div class="skeleton-line skeleton-time"></div>
-        </div>
-        <div class="skeleton-box skeleton-condimage"></div>
-        <div class="skeleton-line skeleton-tmax"></div>
-        <div class="skeleton-line skeleton-tmin"></div>
-    </div>
-    
-    <!-- Skeleton for Forecast Day 4 -->
-    <div class="skeleton-item skeleton-item-forecast">
-        <div class="skeleton-head">
-            <div class="skeleton-line skeleton-time"></div>
-        </div>
-        <div class="skeleton-box skeleton-condimage"></div>
-        <div class="skeleton-line skeleton-tmax"></div>
-        <div class="skeleton-line skeleton-tmin"></div>
-    </div>
-    <!-- Add more skeleton-item-forecast blocks if NUM_OF_DAYS_FORECAST > 2 -->
+            <div class="daycontainer skeleton-item skeleton-item-forecast">
+                <div class="item time skeleton-head skeleton-time skeleton-line"></div>
+                <div class="skeleton-box skeleton-condimage"></div>
+                <div class="skeleton-line skeleton-tmax"></div>
+                <div class="skeleton-line skeleton-tmin"></div>
+            </div>
 
-</div>
-                
+            <div class="daycontainer skeleton-item skeleton-item-forecast">
+                <div class="item time skeleton-head skeleton-time skeleton-line"></div>
+                <div class="skeleton-box skeleton-condimage"></div>
+                <div class="skeleton-line skeleton-tmax"></div>
+                <div class="skeleton-line skeleton-tmin"></div>
+            </div>
+
+            <div class="daycontainer skeleton-item skeleton-item-forecast">
+                <div class="item time skeleton-head skeleton-time skeleton-line"></div>
+                <div class="skeleton-box skeleton-condimage"></div>
+                <div class="skeleton-line skeleton-tmax"></div>
+                <div class="skeleton-line skeleton-tmin"></div>
+            </div>
         </div>
 
-        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
-        <script src="suncalc.js" charset="UTF-8"></script>
-        <script src="weather.js" charset="UTF-8"></script>
+        <script src="suncalc_v1.9.0.js" defer></script>
+        <script src="weather.js" defer></script>
     </body>
 
 </html>

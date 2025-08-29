@@ -1,14 +1,28 @@
 // --- Configuration & Constants ---
-const HOLIDAY_API_URL = 'https://xn--riigiphad-v9a.ee/et/koik?output=json';
-const CORS_PROXY_URL = 'https://corsproxy.io/?';
-const LATITUDE = 59.443;
-const LONGITUDE = 24.738;
-const MOON_DIAMETER = 70;
+/*
+ * NOTE: Some configuration values (LATITUDE, LONGITUDE) are duplicated
+ * in weather.js. In a larger application, these should be moved to a
+ * shared configuration file or module to ensure consistency.
+ */
+const CONFIG = {
+    HOLIDAY_API_URL: 'https://xn--riigiphad-v9a.ee/et/koik?output=json',
+    CORS_PROXY_URL: 'https://corsproxy.io/?',
+    LATITUDE: 59.443,
+    LONGITUDE: 24.738,
+    MOON_DIAMETER: 70,
+    SPECIAL_EVENTS: [
+        { date: '03-18', message: 'PALJU &Otilde;NNE S&Uuml;NNIP&Auml;EVAKS!' }
+        // Add more special events here, e.g., { date: '12-24', message: 'Jõululaupäev' }
+    ],
+    HOLIDAY_MAX_LENGTH_FOR_NORMAL_FONT: 31,
+};
+
 const MS_IN_MINUTE = 60000;
 const MS_IN_SECOND = 1000;
 
 // --- State ---
 let currentHolidayEvent = ""; // Stores the fetched holiday/event name
+let lastCheckedDateForHoliday = ""; // Tracks the date for which holidays were last fetched
 
 // --- DOM Element Caching ---
 // Cache frequently accessed elements to avoid repeated lookups
@@ -29,38 +43,39 @@ const elements = {
  * @param {number} num - The number to format.
  * @returns {string} Formatted number string.
  */
-const addZeroPadding = (num) => (num < 10 ? '0' : '') + num;
+const addZeroPadding = (num) => String(num).padStart(2, '0');
 
 /**
- * Gets the current date string in YYYY-MM-DD format, adjusted for local timezone.
+ * Gets the date string in YYYY-MM-DD format for the local timezone from a Date object.
+ * @param {Date} date - The date object to format.
  * @returns {string} Date string (e.g., "2023-04-23").
  */
-const getCurrentISODateString = () => {
-    const now = new Date();
-    // Adjust date object to reflect local date before converting to ISO string
-    const localDate = new Date(now.getTime() - now.getTimezoneOffset() * MS_IN_MINUTE);
-    return localDate.toISOString().slice(0, 10); // Extracts YYYY-MM-DD part
+const getLocalDateString = (date) => {
+    const year = date.getFullYear();
+    const month = addZeroPadding(date.getMonth() + 1);
+    const day = addZeroPadding(date.getDate());
+    return `${year}-${month}-${day}`;
 };
 
 // --- Core Functions ---
 
 /**
- * Fetches Estonian public holidays for the given date and updates the state.
- * Also checks for a hardcoded birthday.
+ * Fetches Estonian public holidays and checks for special events for the given date, then updates the state.
  * @param {string} dateStr - The date in YYYY-MM-DD format.
  */
 const fetchAndSetHoliday = async (dateStr) => {
-    // 1. Check hardcoded birthday first (overrides public holidays)
-    const currentYear = new Date().getFullYear();
-    if (dateStr === `${currentYear}-03-18`) {
-        currentHolidayEvent = "PALJU &Otilde;NNE S&Uuml;NNIP&Auml;EVAKS!";
+    // 1. Check for custom special events first (they override public holidays)
+    const monthDay = dateStr.slice(5); // "YYYY-MM-DD" -> "MM-DD"
+    const specialEvent = CONFIG.SPECIAL_EVENTS.find(event => event.date === monthDay);
+
+    if (specialEvent) {
+        currentHolidayEvent = specialEvent.message;
         console.log(`Special event found: ${currentHolidayEvent}`);
-        // No need to fetch public holidays if birthday matches
-        return;
+        return; // No need to fetch public holidays if a special event matches
     }
 
     // 2. Fetch public holidays
-    const apiUrl = `${CORS_PROXY_URL}${HOLIDAY_API_URL}`;
+    const apiUrl = `${CONFIG.CORS_PROXY_URL}${CONFIG.HOLIDAY_API_URL}`;
     console.log(`Fetching holidays for ${dateStr} from ${apiUrl}`);
 
     try {
@@ -113,7 +128,7 @@ const updateSunMoonInfo = () => {
             // Note: Using #212121 for both colors makes the moon effectively invisible unless using the background image.
             // Consider different colors if you want a visible crescent shape without the image.
             drawPlanetPhase(elements.moon, moon.fraction, isWaxing, {
-                diameter: MOON_DIAMETER,
+                diameter: CONFIG.MOON_DIAMETER,
                 earthshine: 0, // No earthshine effect
                 blur: 0,       // Sharp terminator
                 lightColour: '#212121', // Color used when phase > 0.5 (mostly lit)
@@ -122,14 +137,13 @@ const updateSunMoonInfo = () => {
         } else {
             console.warn("Moon container element not found.");
         }
-
     } catch (error) {
         console.error("Error calculating or drawing moon phase:", error);
     }
 
     // --- Sunrise/Sunset ---
     try {
-        const sunTimes = SunCalc.getTimes(now, LATITUDE, LONGITUDE);
+        const sunTimes = SunCalc.getTimes(now, CONFIG.LATITUDE, CONFIG.LONGITUDE);
         const sunriseStr = `${addZeroPadding(sunTimes.sunrise.getHours())}:${addZeroPadding(sunTimes.sunrise.getMinutes())}`;
         const sunsetStr = `${addZeroPadding(sunTimes.sunset.getHours())}:${addZeroPadding(sunTimes.sunset.getMinutes())}`;
 
@@ -148,7 +162,8 @@ const updateSunMoonInfo = () => {
     }
 
     // --- Schedule Next Update ---
-    setTimeout(updateSunMoonInfo, MS_IN_MINUTE); // Update every minute
+    const msUntilNextMinute = MS_IN_MINUTE - (now.getSeconds() * MS_IN_SECOND) - now.getMilliseconds();
+    setTimeout(updateSunMoonInfo, msUntilNextMinute > 0 ? msUntilNextMinute : MS_IN_MINUTE);
 };
 
 /**
@@ -157,6 +172,16 @@ const updateSunMoonInfo = () => {
  */
 const updateClockDisplay = () => {
     const now = new Date();
+    const currentDate = getLocalDateString(now);
+
+    // --- Daily Tasks: Check for holiday when date changes ---
+    if (currentDate !== lastCheckedDateForHoliday) {
+        console.log(`Date changed to ${currentDate}. Fetching holiday info.`);
+        lastCheckedDateForHoliday = currentDate;
+        // Fetch holiday info for the new day. Don't await, let it run in the background.
+        // The display will update on a subsequent tick once `currentHolidayEvent` is set.
+        fetchAndSetHoliday(currentDate);
+    }
 
     // --- Time ---
     const hours = addZeroPadding(now.getHours());
@@ -179,10 +204,10 @@ const updateClockDisplay = () => {
     if (elements.day) {
         if (currentHolidayEvent) {
             // Display holiday
-            elements.day.textContent = currentHolidayEvent;
+            elements.day.innerHTML = currentHolidayEvent; // Use innerHTML for entities like &Otilde;
             elements.day.classList.add("cal_event");
             // Adjust font size based on length
-            if (currentHolidayEvent.length > 31) {
+            if (currentHolidayEvent.length > CONFIG.HOLIDAY_MAX_LENGTH_FOR_NORMAL_FONT) {
                 elements.day.classList.add("cal_font");
             } else {
                 elements.day.classList.remove("cal_font"); // Remove if shorter
@@ -198,7 +223,8 @@ const updateClockDisplay = () => {
     }
 
     // --- Schedule Next Update ---
-    setTimeout(updateClockDisplay, MS_IN_SECOND); // Update every second
+    const msUntilNextSecond = MS_IN_SECOND - now.getMilliseconds();
+    setTimeout(updateClockDisplay, msUntilNextSecond > 0 ? msUntilNextSecond : MS_IN_SECOND);
 };
 
 // --- Initialization ---
@@ -210,30 +236,24 @@ const initializeClock = async () => {
     console.log("Initializing clock...");
 
     // 1. Check if all essential DOM elements exist
-    let essentialElementsFound = true;
-    for (const key in elements) {
-        if (!elements[key]) {
+    const missingElements = Object.keys(elements).filter(key => !elements[key]);
+    if (missingElements.length > 0) {
+        missingElements.forEach(key => {
             console.error(`Initialization failed: Element with ID '${key}' not found.`);
-            essentialElementsFound = false;
-            // Display a general error to the user if critical elements are missing
-            // document.body.innerHTML = "Error loading clock components.";
-            // return; // Stop initialization if critical elements are missing
-        }
+        });
+        console.error("One or more essential elements missing. Clock functionality may be limited.");
+        // Decide if you want to proceed with partial functionality or stop
+        // For example: return;
     }
-     if (!essentialElementsFound) {
-         console.error("One or more essential elements missing. Clock functionality may be limited.");
-         // Decide if you want to proceed with partial functionality or stop
-     }
 
 
-    // 2. Fetch holiday information asynchronously
-    const isoDate = getCurrentISODateString();
-    await fetchAndSetHoliday(isoDate); // Wait for holiday info before potentially first clock update uses it
+    // 2. Fetch holiday information for the current day before starting the clock
+    const currentDate = getLocalDateString(new Date());
+    lastCheckedDateForHoliday = currentDate; // Prime the checker to prevent re-fetching immediately
+    await fetchAndSetHoliday(currentDate);
 
-    // 3. Start the clock update loop
+    // 3. Start the update loops
     updateClockDisplay();
-
-    // 4. Start the sun/moon update loop
     updateSunMoonInfo();
 
     console.log("Clock initialized.");
