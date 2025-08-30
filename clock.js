@@ -11,9 +11,16 @@ const CONFIG = {
     LONGITUDE: 24.738,
     MOON_DIAMETER: 70,
     SPECIAL_EVENTS: [
-        { date: '03-18', message: 'PALJU &Otilde;NNE S&Uuml;NNIP&Auml;EVAKS!' }
-        // Add more special events here, e.g., { date: '12-24', message: 'Jõululaupäev' }
+        { date: '1984-03-18', message: 'PALJU &Otilde;NNE S&Uuml;NNIP&Auml;EVAKS!' },
+        { date: '2020-08-23', message: 'TUTVUSIME!' },
+        { date: '2020-09-09', message: 'KOHTUSIME!' },
+        { date: '2022-03-28', message: 'KOOSELU!' }
+        // Add more special events here with full date 'YYYY-MM-DD', e.g., { date: '2015-12-24', message: 'Jõululaupäev' }
     ],
+    // Format for the anniversary text. Use '{years}' as a placeholder for the number.
+    // Examples: '({years}. aastapäev)', '({years})', 'Year {years}'
+    // Set to null or an empty string to disable anniversary text.
+    ANNIVERSARY_FORMAT: '({years}a)',
     HOLIDAY_MAX_LENGTH_FOR_NORMAL_FONT: 31,
 };
 
@@ -23,6 +30,7 @@ const MS_IN_SECOND = 1000;
 // --- State ---
 let currentHolidayEvent = ""; // Stores the fetched holiday/event name
 let lastCheckedDateForHoliday = ""; // Tracks the date for which holidays were last fetched
+let lastDisplayedEventMessage = null; // Tracks the currently displayed message to avoid re-rendering
 
 // --- DOM Element Caching ---
 // Cache frequently accessed elements to avoid repeated lookups
@@ -65,13 +73,29 @@ const getLocalDateString = (date) => {
  */
 const fetchAndSetHoliday = async (dateStr) => {
     // 1. Check for custom special events first (they override public holidays)
-    const monthDay = dateStr.slice(5); // "YYYY-MM-DD" -> "MM-DD"
-    const specialEvent = CONFIG.SPECIAL_EVENTS.find(event => event.date === monthDay);
+    const currentMonthDay = dateStr.substring(5); // "YYYY-MM-DD" -> "MM-DD"
+    const currentYear = new Date(dateStr).getFullYear();
+
+    const specialEvent = CONFIG.SPECIAL_EVENTS.find(event => event.date.substring(5) === currentMonthDay);
 
     if (specialEvent) {
-        currentHolidayEvent = specialEvent.message;
+        const eventYear = new Date(specialEvent.date).getFullYear();
+        const anniversary = currentYear - eventYear;
+
+        let eventMessage = specialEvent.message;
+        // Append anniversary text if it's a positive number and a format is defined.
+        if (anniversary > 0) {
+            // Default to '({years})' if ANNIVERSARY_FORMAT is not explicitly defined.
+            const format = CONFIG.ANNIVERSARY_FORMAT !== undefined ? CONFIG.ANNIVERSARY_FORMAT : '({years})';
+
+            if (format) { // Only append if the format string is not null or empty.
+                const anniversaryText = format.replace('{years}', anniversary);
+                eventMessage = `${eventMessage} ${anniversaryText}`;
+            }
+        }
+        currentHolidayEvent = eventMessage;
         console.log(`Special event found: ${currentHolidayEvent}`);
-        return; // No need to fetch public holidays if a special event matches
+        return; // An event was found, no need to fetch public holidays
     }
 
     // 2. Fetch public holidays
@@ -201,25 +225,46 @@ const updateClockDisplay = () => {
     if (elements.date) elements.date.textContent = dateStr;
 
     // --- Day / Holiday ---
+    // This logic now only re-renders the #day element when its content changes.
     if (elements.day) {
-        if (currentHolidayEvent) {
-            // Display holiday
-            elements.day.innerHTML = currentHolidayEvent; // Use innerHTML for entities like &Otilde;
-            elements.day.classList.add("cal_event");
-            // Adjust font size based on length
-            if (currentHolidayEvent.length > CONFIG.HOLIDAY_MAX_LENGTH_FOR_NORMAL_FONT) {
-                elements.day.classList.add("cal_font");
+        const dayName = now.toLocaleDateString('et-EE', { weekday: 'long' });
+        const messageToDisplay = currentHolidayEvent || dayName;
+
+        if (messageToDisplay !== lastDisplayedEventMessage) {
+            lastDisplayedEventMessage = messageToDisplay; // Update tracker
+
+            // Reset element state
+            elements.day.innerHTML = '';
+            elements.day.className = 'day'; // Use 'day' as the base class
+
+            if (currentHolidayEvent) {
+                elements.day.classList.add("cal_event");
+
+                const textSpan = document.createElement('span');
+                textSpan.innerHTML = currentHolidayEvent;
+                elements.day.appendChild(textSpan);
+
+                // Use a microtask to measure after the DOM has been updated
+                Promise.resolve().then(() => {
+                    const isOverflowing = textSpan.scrollWidth > elements.day.clientWidth;
+
+                    if (isOverflowing) {
+                        textSpan.classList.add('scrolling-text');
+                        // Set animation duration based on text length for a consistent scroll speed
+                        const scrollDistance = textSpan.scrollWidth + elements.day.clientWidth;
+                        const scrollSpeed = 80; // pixels per second
+                        const duration = scrollDistance / scrollSpeed;
+                        textSpan.style.animationDuration = `${duration}s`;
+                    } else if (currentHolidayEvent.length > CONFIG.HOLIDAY_MAX_LENGTH_FOR_NORMAL_FONT) {
+                        // Fallback to smaller font for long text that doesn't overflow
+                        elements.day.classList.add("cal_font");
+                    }
+                });
             } else {
-                elements.day.classList.remove("cal_font"); // Remove if shorter
+                // It's a regular day name
+                elements.day.textContent = dayName;
             }
-        } else {
-            // Display regular day name
-            const dayName = now.toLocaleDateString('et-EE', { weekday: 'long' });
-            elements.day.textContent = dayName;
-            elements.day.classList.remove("cal_event", "cal_font"); // Remove holiday styles
         }
-    } else {
-        console.warn("Day/Holiday element not found.");
     }
 
     // --- Schedule Next Update ---

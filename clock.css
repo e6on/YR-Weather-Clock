@@ -138,4 +138,35 @@ body {
 .cal_event {
     color: var(--event-color);
     text-align: center;
+    /* New styles for overflow handling */
+    width: 100%;
+    max-width: 300px;
+    /* Adjust this value to fit your screen layout */
+    margin: 0 auto;
+    white-space: nowrap;
+    overflow: hidden;
+    box-sizing: border-box;
+}
+
+/* The inner span that holds the text, allowing it to be animated */
+.cal_event>span {
+    display: inline-block;
+}
+
+/* Class applied to the span when its content needs to scroll */
+.scrolling-text {
+    padding-left: 100%;
+    /* Start the text off-screen to the right */
+    animation: marquee linear infinite;
+    /* animation-duration is set dynamically in JS */
+}
+
+@keyframes marquee {
+    0% {
+        transform: translateX(0);
+    }
+
+    100% {
+        transform: translateX(-100%);
+    }
 }
