@@ -1,22 +1,22 @@
 // --- Configuration ---
-const API_URL = "https://api.met.no/weatherapi/locationforecast/2.0/complete";
-const LATITUDE = 59.443;
-const LONGITUDE = 24.738;
-const THEME = "realistic"; // "yr", "anim", "realistic"
-const NUM_OF_DAYS_FORECAST = 3; // Number of days beyond today
-const WEATHER_CONTAINER_SELECTOR = ".maincontainer"; // Selector for the display element
+// Configuration is now loaded from config.js via the global APP_CONFIG object.
+const API_URL = APP_CONFIG.WEATHER.API_URL;
+const LATITUDE = APP_CONFIG.LOCATION.LATITUDE;
+const LONGITUDE = APP_CONFIG.LOCATION.LONGITUDE;
+const THEME = APP_CONFIG.WEATHER.THEME;
+const NUM_OF_DAYS_FORECAST = APP_CONFIG.WEATHER.NUM_OF_DAYS_FORECAST;
+const WEATHER_CONTAINER_SELECTOR = APP_CONFIG.WEATHER.CONTAINER_SELECTOR;
 
 // --- Constants ---
 const IMAGE_EXT = THEME === "realistic" ? ".png" : ".svg";
 const IMAGE_PATH = `./images/${THEME}/`;
 const COMMON_IMAGE_PATH = './images/common/';
-const MS_IN_MINUTE = 60000;
 const MS_IN_HOUR = 3600000;
 const MS_IN_DAY = 86400000;
 
 // --- Constants for Retry ---
-const MAX_FETCH_RETRIES = 3; // Maximum number of fetch attempts
-const RETRY_DELAY_MS = 5000; // Delay between retries in milliseconds (e.g., 5 seconds)
+const MAX_FETCH_RETRIES = APP_CONFIG.WEATHER.MAX_FETCH_RETRIES;
+const RETRY_DELAY_MS = APP_CONFIG.WEATHER.RETRY_DELAY_MS;
 
 // --- API Data Constants ---
 const API_KEYS = {
@@ -47,13 +47,6 @@ if (!weatherContainer) {
 }
 
 // --- Utility Functions ---
-
-/**
- * Adds a leading zero to single-digit numbers.
- * @param {number} num - The number to format.
- * @returns {string} Formatted number string.
- */
-const addZero = (num) => String(num).padStart(2, '0');
 
 /**
  * Calculates a future date string in YYYY-MM-DDTHH format.
@@ -185,16 +178,15 @@ const findAndExtractValues = (timeseries, timeKey, duration, keys) => {
  * @returns {string} HTML string for temperature display.
  */
 const formatTemperatureHTML = (temp) => {
-    if (temp === undefined || temp === null) return "<div class='temp'>--&deg;</div>"; // Handle missing temp
+    if (temp == null) return "<div class='temp'>--&deg;</div>"; // Handle missing temp with == null
 
-    const tempString = temp.toString();
+    const tempString = String(Math.abs(temp)); // Use Math.abs to handle negative sign separately
     const [integerPart, decimalPart] = tempString.split('.');
-    const decimalDisplay = decimalPart ? `.${decimalPart}` : '.0';
 
     return `<div class='temp'>
-                <div class='t1'>${integerPart}</div>
+                <div class='t1'>${temp < 0 ? '-' : ''}${integerPart}</div>
                 <div class='tempsplit deg'>&deg;</div>
-                <div class='tempsplit t2'>${decimalDisplay}</div>
+                <div class='tempsplit t2'>.${decimalPart ?? '0'}</div>
             </div>`;
 };
 
@@ -240,7 +232,7 @@ const createCurrentWeatherHTML = (instantData, next1hData, currentTime, sunTimes
     if (windSpeed !== undefined && windSpeed >= 0 && windSpeed < 13) {
         windIcon = `wind-${Math.floor(windSpeed)}`; // Use integer part for icon name
     }
-    const windHTML = `<img class='icon image1' src='${COMMON_IMAGE_PATH}${windIcon}.svg' alt='wind' /><div>${windSpeed ?? '--'}<sup>m/s</sup></div>`; // Use ?? for nullish coalescing
+    const windHTML = `<img class='icon image1' src='${COMMON_IMAGE_PATH}${windIcon}.svg' alt='wind' /><div>${Math.round(windSpeed) ?? '--'}<sup>m/s</sup></div>`;
 
     const thunderIcon = (adjustedSymbol1h && adjustedSymbol1h.includes("thunder"))
         ? `<img class='icon image2' src='${COMMON_IMAGE_PATH}thunder.svg' alt='thunder' />`
@@ -329,16 +321,16 @@ const createSkeletonItemHTML = (isCurrent) => {
 const displaySkeletonLoader = () => {
     if (!weatherContainer) return;
 
-    let skeletonHTML = createSkeletonItemHTML(true); // Current weather
+    const skeletons = [createSkeletonItemHTML(true)]; // Start with current weather
     // +1 for today's summary forecast
     for (let i = 0; i < NUM_OF_DAYS_FORECAST + 1; i++) {
-        skeletonHTML += createSkeletonItemHTML(false);
+        skeletons.push(createSkeletonItemHTML(false));
     }
 
     // The CSS in weather.css uses a `.weather-skeleton` class on the container
     // to apply the pulsing animation to children.
     weatherContainer.classList.add('weather-skeleton');
-    weatherContainer.innerHTML = skeletonHTML;
+    weatherContainer.innerHTML = skeletons.join('');
 };
 
 /**
@@ -396,24 +388,24 @@ const renderWeather = (weatherData) => {
 };
 
 // --- Main Weather Fetching and Display Logic ---
-const fetchAndDisplayWeather = async (currentAttempt = 1) => {
+const fetchAndDisplayWeather = async () => {
     const now = new Date();
-
     const apiUrl = `${API_URL}?lat=${LATITUDE}&lon=${LONGITUDE}`;
 
-    // Display skeleton loader on first attempt of a fetch cycle
-    if (currentAttempt === 1) {
-        displaySkeletonLoader();
-    }
-
-    console.log(`Fetching weather data... (Attempt ${currentAttempt}/${MAX_FETCH_RETRIES})`);
+    displaySkeletonLoader();
+    console.log(`Fetching weather data from ${apiUrl}`);
 
     try {
-        const response = await fetch(apiUrl);
-        if (!response.ok) {
-            throw new Error(`API request failed: ${response.status} ${response.statusText}`);
-        }
-        const data = await response.json();
+        const data = await fetchWithRetry(apiUrl, {
+            maxRetries: MAX_FETCH_RETRIES,
+            retryDelay: RETRY_DELAY_MS,
+            onRetry: (attempt, maxRetries) => {
+                // This function is called before a retry happens.
+                // It's a great place to update the UI.
+                const nextAttempt = attempt + 1;
+                updateStatus(`Failed to load weather. Retrying in ${RETRY_DELAY_MS / 1000}s... (Attempt ${nextAttempt}/${maxRetries})`, true);
+            }
+        });
 
         if (!data?.properties?.timeseries) {
             throw new Error("Invalid API response structure.");
@@ -462,15 +454,8 @@ const fetchAndDisplayWeather = async (currentAttempt = 1) => {
         renderWeather(weatherData);
 
     } catch (error) {
-        console.error(`Failed to fetch or process weather data (attempt ${currentAttempt}/${MAX_FETCH_RETRIES}):`, error);
-        if (currentAttempt < MAX_FETCH_RETRIES) {
-            const nextAttempt = currentAttempt + 1;
-            updateStatus(`Failed to load weather. Retrying in ${RETRY_DELAY_MS / 1000}s... (Attempt ${nextAttempt}/${MAX_FETCH_RETRIES})`, true);
-            setTimeout(() => fetchAndDisplayWeather(nextAttempt), RETRY_DELAY_MS);
-        } else {
-            console.error("All retries failed for weather data.");
-            updateStatus(`ERROR: Failed to load weather after ${MAX_FETCH_RETRIES} attempts. ${error.message}`, true);
-        }
+        console.error("All retries failed for weather data.", error);
+        updateStatus(`ERROR: ${error.message}`, true);
     }
 };
 
@@ -478,9 +463,8 @@ const fetchAndDisplayWeather = async (currentAttempt = 1) => {
 // Ensure SunCalc is loaded before running
 if (typeof SunCalc !== 'undefined') {
     fetchAndDisplayWeather(); // Initial call, will use default currentAttempt = 1
-    // Optional: Set an interval to refresh the weather periodically
-    // Each call from setInterval will also start with attempt 1 for its refresh cycle
-    setInterval(() => fetchAndDisplayWeather(), 30 * MS_IN_MINUTE); // Refresh every 30 minutes
+    // The new fetchAndDisplayWeather is self-contained and can be called by setInterval.
+    setInterval(fetchAndDisplayWeather, 30 * MS_IN_MINUTE); // Refresh every 30 minutes
 } else {
     updateStatus("Error: SunCalc library not loaded.", true);
 }

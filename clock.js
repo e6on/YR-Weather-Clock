@@ -1,31 +1,7 @@
 // --- Configuration & Constants ---
-/*
- * NOTE: Some configuration values (LATITUDE, LONGITUDE) are duplicated
- * in weather.js. In a larger application, these should be moved to a
- * shared configuration file or module to ensure consistency.
- */
-const CONFIG = {
-    HOLIDAY_API_URL: 'https://xn--riigiphad-v9a.ee/et/koik?output=json',
-    CORS_PROXY_URL: 'https://corsproxy.io/?',
-    LATITUDE: 59.443,
-    LONGITUDE: 24.738,
-    MOON_DIAMETER: 70,
-    SPECIAL_EVENTS: [
-        { date: '1984-03-18', message: 'PALJU &Otilde;NNE S&Uuml;NNIP&Auml;EVAKS!' },
-        { date: '2020-08-23', message: 'TUTVUSIME!' },
-        { date: '2020-09-09', message: 'KOHTUSIME!' },
-        { date: '2022-03-28', message: 'KOOSELU!' }
-        // Add more special events here with full date 'YYYY-MM-DD', e.g., { date: '2015-12-24', message: 'Jõululaupäev' }
-    ],
-    // Format for the anniversary text. Use '{years}' as a placeholder for the number.
-    // Examples: '({years}. aastapäev)', '({years})', 'Year {years}'
-    // Set to null or an empty string to disable anniversary text.
-    ANNIVERSARY_FORMAT: '({years}a)',
-    HOLIDAY_MAX_LENGTH_FOR_NORMAL_FONT: 31,
-};
-
-const MS_IN_MINUTE = 60000;
-const MS_IN_SECOND = 1000;
+// Configuration is now loaded from config.js via the global APP_CONFIG object.
+const CLOCK_CONFIG = APP_CONFIG.CLOCK;
+const LOCATION_CONFIG = APP_CONFIG.LOCATION;
 
 // --- State ---
 let currentHolidayEvent = ""; // Stores the fetched holiday/event name
@@ -44,27 +20,6 @@ const elements = {
     sunsetTime: document.getElementById('sunsettime')
 };
 
-// --- Utility Functions ---
-
-/**
- * Adds a leading zero to single-digit numbers.
- * @param {number} num - The number to format.
- * @returns {string} Formatted number string.
- */
-const addZeroPadding = (num) => String(num).padStart(2, '0');
-
-/**
- * Gets the date string in YYYY-MM-DD format for the local timezone from a Date object.
- * @param {Date} date - The date object to format.
- * @returns {string} Date string (e.g., "2023-04-23").
- */
-const getLocalDateString = (date) => {
-    const year = date.getFullYear();
-    const month = addZeroPadding(date.getMonth() + 1);
-    const day = addZeroPadding(date.getDate());
-    return `${year}-${month}-${day}`;
-};
-
 // --- Core Functions ---
 
 /**
@@ -76,18 +31,18 @@ const fetchAndSetHoliday = async (dateStr) => {
     const currentMonthDay = dateStr.substring(5); // "YYYY-MM-DD" -> "MM-DD"
     const currentYear = new Date(dateStr).getFullYear();
 
-    const specialEvent = CONFIG.SPECIAL_EVENTS.find(event => event.date.substring(5) === currentMonthDay);
+    const specialEvent = CLOCK_CONFIG.SPECIAL_EVENTS.find(event => event.date.substring(5) === currentMonthDay);
 
     if (specialEvent) {
         const eventYear = new Date(specialEvent.date).getFullYear();
         const anniversary = currentYear - eventYear;
 
         let eventMessage = specialEvent.message;
-        // Append anniversary text if it's a positive number and a format is defined.
-        if (anniversary > 0) {
-            // Default to '({years})' if ANNIVERSARY_FORMAT is not explicitly defined.
-            const format = CONFIG.ANNIVERSARY_FORMAT !== undefined ? CONFIG.ANNIVERSARY_FORMAT : '({years})';
+        // Append anniversary text if it's a positive number and a format is provided.
+        // Use the event-specific format, or fall back to the global format.
+        const format = specialEvent.anniversaryFormat !== undefined ? specialEvent.anniversaryFormat : CLOCK_CONFIG.ANNIVERSARY_FORMAT;
 
+        if (anniversary > 0 && format) {
             if (format) { // Only append if the format string is not null or empty.
                 const anniversaryText = format.replace('{years}', anniversary);
                 eventMessage = `${eventMessage} ${anniversaryText}`;
@@ -99,16 +54,11 @@ const fetchAndSetHoliday = async (dateStr) => {
     }
 
     // 2. Fetch public holidays
-    const apiUrl = `${CONFIG.CORS_PROXY_URL}${CONFIG.HOLIDAY_API_URL}`;
+    const apiUrl = `${CLOCK_CONFIG.CORS_PROXY_URL}${CLOCK_CONFIG.HOLIDAY_API_URL}`;
     console.log(`Fetching holidays for ${dateStr} from ${apiUrl}`);
 
     try {
-        const response = await fetch(apiUrl);
-        if (!response.ok) {
-            throw new Error(`HTTP error! Status: ${response.status}`);
-        }
-        const holidays = await response.json();
-
+        const holidays = await fetchWithRetry(apiUrl); // Uses default retry settings (3 retries, 1s delay)
         if (!Array.isArray(holidays)) {
             throw new Error("Invalid holiday data format received.");
         }
@@ -152,7 +102,7 @@ const updateSunMoonInfo = () => {
             // Note: Using #212121 for both colors makes the moon effectively invisible unless using the background image.
             // Consider different colors if you want a visible crescent shape without the image.
             drawPlanetPhase(elements.moon, moon.fraction, isWaxing, {
-                diameter: CONFIG.MOON_DIAMETER,
+                diameter: CLOCK_CONFIG.MOON_DIAMETER,
                 earthshine: 0, // No earthshine effect
                 blur: 0,       // Sharp terminator
                 lightColour: '#212121', // Color used when phase > 0.5 (mostly lit)
@@ -167,9 +117,9 @@ const updateSunMoonInfo = () => {
 
     // --- Sunrise/Sunset ---
     try {
-        const sunTimes = SunCalc.getTimes(now, CONFIG.LATITUDE, CONFIG.LONGITUDE);
-        const sunriseStr = `${addZeroPadding(sunTimes.sunrise.getHours())}:${addZeroPadding(sunTimes.sunrise.getMinutes())}`;
-        const sunsetStr = `${addZeroPadding(sunTimes.sunset.getHours())}:${addZeroPadding(sunTimes.sunset.getMinutes())}`;
+        const sunTimes = SunCalc.getTimes(now, LOCATION_CONFIG.LATITUDE, LOCATION_CONFIG.LONGITUDE);
+        const sunriseStr = `${addZero(sunTimes.sunrise.getHours())}:${addZero(sunTimes.sunrise.getMinutes())}`;
+        const sunsetStr = `${addZero(sunTimes.sunset.getHours())}:${addZero(sunTimes.sunset.getMinutes())}`;
 
         if (elements.sunriseTime) {
             elements.sunriseTime.textContent = sunriseStr;
@@ -208,9 +158,9 @@ const updateClockDisplay = () => {
     }
 
     // --- Time ---
-    const hours = addZeroPadding(now.getHours());
-    const minutes = addZeroPadding(now.getMinutes());
-    const seconds = addZeroPadding(now.getSeconds());
+    const hours = addZero(now.getHours());
+    const minutes = addZero(now.getMinutes());
+    const seconds = addZero(now.getSeconds());
     const timeStr = `${hours}:${minutes}`;
 
     if (elements.time) elements.time.textContent = timeStr;
@@ -220,7 +170,7 @@ const updateClockDisplay = () => {
     const dayOfMonth = now.getDate();
     const month = now.getMonth() + 1; // getMonth is 0-indexed
     const year = now.getFullYear();
-    const dateStr = `${addZeroPadding(dayOfMonth)}.${addZeroPadding(month)}.${year}`;
+    const dateStr = `${addZero(dayOfMonth)}.${addZero(month)}.${year}`;
 
     if (elements.date) elements.date.textContent = dateStr;
 
@@ -255,9 +205,6 @@ const updateClockDisplay = () => {
                         const scrollSpeed = 80; // pixels per second
                         const duration = scrollDistance / scrollSpeed;
                         textSpan.style.animationDuration = `${duration}s`;
-                    } else if (currentHolidayEvent.length > CONFIG.HOLIDAY_MAX_LENGTH_FOR_NORMAL_FONT) {
-                        // Fallback to smaller font for long text that doesn't overflow
-                        elements.day.classList.add("cal_font");
                     }
                 });
             } else {
