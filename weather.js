@@ -285,8 +285,8 @@ const createForecastDayHTML = (isoDateTimeString, forecastData6h, forecastData12
 
     const timeHTML = `<div class='item time'>${formatDateEstonian(isoDateTimeString)}</div>`;
     const conditionImage = `<img class='conditionpic' src='${IMAGE_PATH}${symbolCode}${IMAGE_EXT}' alt='${symbolCode}' />`;
-    const maxTempHTML = `<div class='item tempmax'>${maxTemp ?? '--'}&deg;</div>`; // Use ??
-    const minTempHTML = `<div class='item tempmin'>${minTemp ?? '--'}&deg;</div>`; // Use ??
+    const maxTempHTML = `<div class='item tempmax'><span>${maxTemp ?? '--'}&deg;</span></div>`; // Use ??
+    const minTempHTML = `<div class='item tempmin'><span>${minTemp ?? '--'}&deg;</span></div>`; // Use ??
 
     const containerClass = 'daycontainer';
 

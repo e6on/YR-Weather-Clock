@@ -21,6 +21,7 @@ body {
     font-family: var(--font-family-main);
     overflow: hidden;
     margin: 0;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.9);
     /* Reset default body margin for consistency */
 }
 
@@ -130,6 +131,8 @@ sup {
 .tempmax {
     grid-area: tmax;
     align-items: flex-end;
+    justify-content: center;
+    /* Center the span horizontally */
     font-size: 40px;
     color: var(--text-color-weather);
 }
@@ -137,6 +140,8 @@ sup {
 .tempmin {
     grid-area: tmin;
     align-items: flex-start;
+    justify-content: center;
+    /* Center the span horizontally */
     font-size: 40px;
     color: var(--text-color-forecast-min);
 }
