@@ -1,6 +1,7 @@
 /* --- CSS Variables --- */
 :root {
     --bg-color: #000;
+    --text-shadow-default: 0 0 15px rgba(0, 0, 0, 1), 0 0 35px rgba(0, 0, 0, 0.9);
     --text-color-primary: white;
     --text-color-weather: #00FFFF;
     /* Cyan */
@@ -21,7 +22,7 @@ body {
     font-family: var(--font-family-main);
     overflow: hidden;
     margin: 0;
-    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.9);
+    text-shadow: var(--text-shadow-default);
     /* Reset default body margin for consistency */
 }
 
@@ -49,9 +50,9 @@ body {
     grid-template-columns: auto min-content;
     grid-template-rows: min-content 70px 70px;
     grid-template-areas:
-        "head head"
-        "condimage tmax"
-        "condimage tmin";
+        "head head head"
+        "condimage tmax tmax"
+        "condimage tmin tmin";
 }
 
 .conditionpic {
@@ -79,7 +80,7 @@ body {
 
 .temp {
     grid-row: 2 / span 2;
-    grid-column: 2;
+    grid-column: 2 / span 2;
     justify-self: center;
     align-self: center;
     font-size: 80px;
