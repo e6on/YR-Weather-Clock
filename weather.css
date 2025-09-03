@@ -28,7 +28,7 @@ body {
     display: flex;
     justify-content: center;
     /* Use center with gap for more predictable spacing */
-    gap: 30px;
+    gap: 0px;
     /* Control the space between weather items */
     align-items: center;
     height: 100vh;
