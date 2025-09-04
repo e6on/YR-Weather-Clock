@@ -101,10 +101,18 @@ body {
 }
 
 /* --- Date & Day --- */
-#date,
 .day {
     font-size: var(--font-size-normal);
     color: var(--text-color-primary);
+    margin-bottom: 2px;
+    /* This provides space between the day and the clock */
+}
+
+#date {
+    font-size: var(--font-size-normal);
+    color: var(--text-color-primary);
+    margin-bottom: 15px;
+    /* This adds the requested gap above the sun/moon section */
 }
 
 /* --- Clock --- */

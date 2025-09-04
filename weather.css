@@ -127,6 +127,7 @@ sup {
     grid-column: 2;
     align-self: start;
     text-align: left;
+    margin-top: -5px;
 }
 
 .tempmax {
