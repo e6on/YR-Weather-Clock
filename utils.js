@@ -14,6 +14,7 @@
 
 // --- Shared Constants ---
 const MS_IN_SECOND = 1000;
+const MS_IN_HOUR = 3600000;
 const MS_IN_MINUTE = 60000;
 
 /**
@@ -35,6 +36,28 @@ const getLocalDateString = (date) => {
     return `${year}-${month}-${day}`;
 };
 
+/**
+ * Calculates a future date string in YYYY-MM-DDTHH format.
+ * @param {Date} baseDate - The starting date object.
+ * @param {number} daysOffset - Number of days to add.
+ * @param {number} hour - Specific hour (0-23). Must be provided.
+ * @returns {string} Date string in YYYY-MM-DDTHH format (e.g., "2024-02-01T06").
+ */
+const getFutureDateString = (baseDate, daysOffset, hour) => {
+    if (hour === undefined || hour === null || hour < 0 || hour > 23) {
+        console.error("getFutureDateString requires a valid hour (0-23).");
+        return "INVALID_DATE_FORMAT";
+    }
+
+    const targetDate = new Date(baseDate); // Create a copy to avoid modifying the original
+    targetDate.setDate(targetDate.getDate() + daysOffset);
+
+    const year = targetDate.getFullYear();
+    const month = addZero(targetDate.getMonth() + 1);
+    const day = addZero(targetDate.getDate());
+
+    return `${year}-${month}-${day}T${addZero(hour)}`;
+};
 /**
  * A helper function to create a delay.
  * @param {number} ms - The number of milliseconds to wait.

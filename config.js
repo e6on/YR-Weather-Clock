@@ -25,10 +25,27 @@ const APP_CONFIG = {
     WEATHER: {
         API_URL: "https://api.met.no/weatherapi/locationforecast/2.0/complete",
         THEME: "realistic", // "yr", "anim", "realistic"
+        // Defines settings for each theme, like the image file extension.
+        THEME_SETTINGS: {
+            realistic: { extension: '.png' },
+            yr: { extension: '.svg' },
+            anim: { extension: '.svg' }
+        },
         NUM_OF_DAYS_FORECAST: 3,
         CONTAINER_SELECTOR: ".maincontainer",
         MAX_FETCH_RETRIES: 3,
         RETRY_DELAY_MS: 5000,
+        REFRESH_INTERVAL_MIN: 30, // How often to refresh weather data, in minutes.
+        // Labels for the upcoming time block forecast (e.g., "Today" summary)
+        COMMON_IMAGE_PATH: './images/common/',
+        TIME_BLOCK_LABELS: {
+            MORNING: 'HOMMIKUL',
+            AFTERNOON: 'PÄEVAL',
+            EVENING: 'ÕHTUL',
+            NIGHT: 'ÖÖSEL'
+        },
+        // Short month names for forecast display
+        MONTH_NAMES: ['JAAN', 'VEEBR', 'MÄRTS', 'APR', 'MAI', 'JUUNI', 'JUULI', 'AUG', 'SEPT', 'OKT', 'NOV', 'DETS'],
     },
 
     // --- Clock Widget ---

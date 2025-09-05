@@ -1,5 +1,6 @@
 // --- Configuration & Constants ---
 // Configuration is now loaded from config.js via the global APP_CONFIG object.
+const COMMON_IMAGE_PATH = APP_CONFIG.WEATHER.COMMON_IMAGE_PATH;
 const CLOCK_CONFIG = APP_CONFIG.CLOCK;
 const LOCATION_CONFIG = APP_CONFIG.LOCATION;
 
@@ -16,8 +17,8 @@ const elements = {
     time: document.getElementById('time'),
     seconds: document.getElementById('seconds'),
     moon: document.getElementById('moon'),
-    sunriseTime: document.getElementById('sunrisetime'),
-    sunsetTime: document.getElementById('sunsettime')
+    sunriseTime: document.getElementById('sunrisetime'), // Corrected typo
+    sunsetTime: document.getElementById('sunsettime') // Corrected typo
 };
 
 // --- Core Functions ---
@@ -135,9 +136,6 @@ const updateSunMoonInfo = () => {
         console.error("Error calculating sun times:", error);
     }
 
-    // --- Schedule Next Update ---
-    const msUntilNextMinute = MS_IN_MINUTE - (now.getSeconds() * MS_IN_SECOND) - now.getMilliseconds();
-    setTimeout(updateSunMoonInfo, msUntilNextMinute > 0 ? msUntilNextMinute : MS_IN_MINUTE);
 };
 
 /**
@@ -162,6 +160,11 @@ const updateClockDisplay = () => {
     const minutes = addZero(now.getMinutes());
     const seconds = addZero(now.getSeconds());
     const timeStr = `${hours}:${minutes}`;
+
+    // --- Minute-based Tasks: Update Sun/Moon info when the minute changes ---
+    if (seconds === '00') {
+        updateSunMoonInfo();
+    }
 
     if (elements.time) elements.time.textContent = timeStr;
     if (elements.seconds) elements.seconds.textContent = seconds;
@@ -246,7 +249,7 @@ const initializeClock = async () => {
 
     // 3. Start the update loops
     updateClockDisplay();
-    updateSunMoonInfo();
+    updateSunMoonInfo(); // Initial call to populate immediately
 
     console.log("Clock initialized.");
 };
