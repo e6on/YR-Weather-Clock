@@ -127,13 +127,12 @@ sup {
     flex-direction: column;
     align-items: flex-start;
     /* Align left within the stack */
-    font-size: 35px;
+    font-size: 40px;
     /* Smaller font for these parts */
-    line-height: 0.9;
+    line-height: 0.75;
     /* Tighten vertical spacing */
-    padding-left: 4px;
     position: relative;
-    top: 4px;
+    top: 1px;
     /* Nudge the stack down slightly for better visual centering */
 }
 
