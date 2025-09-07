@@ -38,6 +38,7 @@ const APP_CONFIG = {
         REFRESH_INTERVAL_MIN: 30, // How often to refresh weather data, in minutes.
         // Labels for the upcoming time block forecast (e.g., "Today" summary)
         COMMON_IMAGE_PATH: './images/common/',
+        FEELS_LIKE_ICON_PATH: './images/common/feels-like.svg',
         TIME_BLOCK_LABELS: {
             MORNING: 'HOMMIKUL',
             AFTERNOON: 'PÄEVAL',

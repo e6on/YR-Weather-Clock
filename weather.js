@@ -169,29 +169,43 @@ const formatTemperatureHTML = (temp) => {
  * @param {object} instantData - Data for 'instant'.
  * @param {object} next1hData - Data for 'next_1_hours'.
  * @param {Date} currentTime - Current time.
- * @param {object} sunTimes - Sunrise/sunset times.
+ * @param {number|null} feelsLikeTemp - The calculated "feels like" temperature.
  * @returns {string} HTML string.
  */
-const createCurrentWeatherHTML = (instantData, next1hData, currentTime, sunTimes) => {
+const createCurrentWeatherHTML = (instantData, next1hData, currentTime, feelsLikeTemp) => {
     const temp = instantData?.air_temperature;
     const windSpeed = instantData?.wind_speed;
+
     const symbolCode = next1hData?.symbol_code || 'default'; // Use API symbol directly
     const precipitationProb = next1hData?.probability_of_precipitation;
 
     const conditionImage = `<img class='conditionpic' src='${IMAGE_PATH}${symbolCode}${IMAGE_EXT}' alt='${symbolCode}' />`;
-    const temperatureHTML = formatTemperatureHTML(temp);
+    const mainTemperatureHTML = formatTemperatureHTML(temp);
+
+    // Create the "feels like" display with an icon, for placement under the main temp.
+    const feelsLikeHTML = (feelsLikeTemp !== null)
+        ? `<div class="feels-like-temp"><img src="${APP_CONFIG.WEATHER.FEELS_LIKE_ICON_PATH}" alt="feels like" class="feels-like-icon" /><span>${feelsLikeTemp}&deg;</span></div>`
+        : "";
 
     let windIcon = 'wind';
     // Use specific wind icons only if wind speed is defined and within range 0-12
     if (windSpeed !== undefined && windSpeed >= 0 && windSpeed < 13) {
         windIcon = `wind-${Math.floor(windSpeed)}`; // Use integer part for icon name
     }
-    const windHTML = `<img class='icon image1' src='${APP_CONFIG.WEATHER.COMMON_IMAGE_PATH}${windIcon}.svg' alt='wind' /><div>${Math.round(windSpeed) ?? '--'}<sup>m/s</sup></div>`;
+    // Wrap icon and text in a container for consistent alignment
+    const windHTML = `<div class="item"><img class='icon image1' src='${APP_CONFIG.WEATHER.COMMON_IMAGE_PATH}${windIcon}.svg' alt='wind' /><div>${Math.round(windSpeed) ?? '--'}<sup>m/s</sup></div></div>`;
 
     const thunderIcon = (symbolCode.includes("thunder"))
         ? `<img class='icon image2' src='${APP_CONFIG.WEATHER.COMMON_IMAGE_PATH}thunder.svg' alt='thunder' />`
         : "";
-    const precipitationHTML = `<div class='parent'><img class='icon' src='${APP_CONFIG.WEATHER.COMMON_IMAGE_PATH}umbrella.svg' alt='umbrella' />${thunderIcon}</div><div>${precipitationProb ?? '--'}<sup>%</sup></div>`;
+    // Wrap icon and text in a container for consistent alignment
+    const precipitationHTML = `<div class="item"><div class='parent'><img class='icon' src='${APP_CONFIG.WEATHER.COMMON_IMAGE_PATH}umbrella.svg' alt='umbrella' />${thunderIcon}</div><div>${precipitationProb ?? '--'}<sup>%</sup></div></div>`;
+
+    // Create a new container to hold both the main temperature and the "feels like" temp
+    const temperatureBlockHTML = `<div class="temperature-block">
+                                    ${mainTemperatureHTML}
+                                    ${feelsLikeHTML}
+                                  </div>`;
 
     return `<div class='daycontainer'>
                 <div class='item propscontainer'>
@@ -199,7 +213,7 @@ const createCurrentWeatherHTML = (instantData, next1hData, currentTime, sunTimes
                     ${precipitationHTML}
                 </div>
                 ${conditionImage}
-                ${temperatureHTML}
+                ${temperatureBlockHTML}
             </div>`;
 };
 
@@ -309,10 +323,10 @@ const updateStatus = (message, isError = false) => {
 const renderWeather = (weatherData) => {
     if (!weatherContainer) return;
 
-    const { current, todaySummary, forecasts, sunTimes, now } = weatherData;
+    const { current, todaySummary, forecasts, sunTimes, now, feelsLike } = weatherData;
 
     // Create HTML for current conditions
-    const currentWeatherHTML = createCurrentWeatherHTML(current.instant, current.next1h, now, sunTimes);
+    const currentWeatherHTML = createCurrentWeatherHTML(current.instant, current.next1h, now, feelsLike);
 
     // Create HTML for today's forecast summary
     let todaySummaryHTML = "";
@@ -384,10 +398,19 @@ const fetchAndDisplayWeather = async () => {
         const upcomingBlockEntry = timeMap.get(`${upcomingBlockKey}:00:00Z`);
         const upcomingBlockSymbol = extractValues(upcomingBlockEntry, API_DURATIONS.NEXT_6_H, [API_KEYS.SYMBOL_CODE])?.symbol_code;
 
-
+        const currentTemp = extractValues(mostRecentForecast, API_DURATIONS.INSTANT, [API_KEYS.AIR_TEMP])?.air_temperature;
+        const currentWind = extractValues(mostRecentForecast, API_DURATIONS.INSTANT, [API_KEYS.WIND_SPEED])?.wind_speed;
+        // --- FOR TESTING "FEELS LIKE" ---
+        // Comment out the original lines and use these test values.
+        // const currentTemp = extractValues(mostRecentForecast, API_DURATIONS.INSTANT, [API_KEYS.AIR_TEMP])?.air_temperature;
+        // const currentWind = extractValues(mostRecentForecast, API_DURATIONS.INSTANT, [API_KEYS.WIND_SPEED])?.wind_speed;
+        //const currentTemp = -5; // Test value: Must be 10 or less.
+        //const currentWind = 8;  // Test value: Must be > 1.34 m/s.
+        // --- END TESTING ---
         const weatherData = {
             now,
             sunTimes,
+            feelsLike: calculateWindChill(currentTemp, currentWind),
             current: {
                 instant: extractValues(mostRecentForecast, API_DURATIONS.INSTANT, [API_KEYS.AIR_TEMP, API_KEYS.WIND_SPEED]),
                 next1h: extractValues(mostRecentForecast, API_DURATIONS.NEXT_1_H, [API_KEYS.SYMBOL_CODE, API_KEYS.PRECIP_PROB]),

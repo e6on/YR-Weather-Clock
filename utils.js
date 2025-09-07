@@ -58,6 +58,31 @@ const getFutureDateString = (baseDate, daysOffset, hour) => {
 
     return `${year}-${month}-${day}T${addZero(hour)}`;
 };
+
+/**
+ * Calculates the 'feels like' temperature using the wind chill formula.
+ * The formula is generally applied for temperatures at or below 10°C and wind speeds above 4.8 km/h.
+ * @param {number} tempCelsius - The air temperature in degrees Celsius.
+ * @param {number} windSpeedMs - The wind speed in meters per second.
+ * @returns {number | null} The calculated wind chill temperature in Celsius, or null if conditions aren't met.
+ */
+const calculateWindChill = (tempCelsius, windSpeedMs) => {
+    if (tempCelsius == null || windSpeedMs == null) return null;
+
+    const windSpeedKmh = windSpeedMs * 3.6;
+
+    // Only calculate if temperature is low enough and wind is strong enough
+    if (tempCelsius > 10 || windSpeedKmh <= 4.8) {
+        return null;
+    }
+
+    const windChill = 13.12 +
+        (0.6215 * tempCelsius) -
+        (11.37 * Math.pow(windSpeedKmh, 0.16)) +
+        (0.3965 * tempCelsius * Math.pow(windSpeedKmh, 0.16));
+
+    return Math.round(windChill);
+};
 /**
  * A helper function to create a delay.
  * @param {number} ms - The number of milliseconds to wait.
