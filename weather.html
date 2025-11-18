@@ -10,50 +10,10 @@
 
     <body>
         <!--
-            The .weather-skeleton class is added directly to the .maincontainer.
-            This static HTML now matches the structure that weather.js generates,
-            allowing for accurate testing by simply commenting out the script tag below.
+            The main container is now empty. The JavaScript will be responsible for
+            displaying the skeleton loader and then the weather content.
         -->
-        <div class="maincontainer weather-skeleton">
-
-            <!-- Skeleton for Current Weather (matches createSkeletonItemHTML(true)) -->
-            <div class="daycontainer skeleton-item skeleton-item-current">
-                <div class="item propscontainer skeleton-head">
-                    <div class="skeleton-line" style="width: 170px; height: 1em; margin-bottom: 5px;"></div>
-                </div>
-                <div class="skeleton-box skeleton-condimage"></div>
-                <div class="skeleton-box skeleton-temp-large"></div>
-            </div>
-
-            <!-- Skeletons for Forecasts (matches createSkeletonItemHTML(false)) -->
-            <div class="daycontainer skeleton-item skeleton-item-forecast">
-                <div class="item time skeleton-head skeleton-time skeleton-line"></div>
-                <div class="skeleton-box skeleton-condimage"></div>
-                <div class="skeleton-line skeleton-tmax"></div>
-                <div class="skeleton-line skeleton-tmin"></div>
-            </div>
-
-            <div class="daycontainer skeleton-item skeleton-item-forecast">
-                <div class="item time skeleton-head skeleton-time skeleton-line"></div>
-                <div class="skeleton-box skeleton-condimage"></div>
-                <div class="skeleton-line skeleton-tmax"></div>
-                <div class="skeleton-line skeleton-tmin"></div>
-            </div>
-
-            <div class="daycontainer skeleton-item skeleton-item-forecast">
-                <div class="item time skeleton-head skeleton-time skeleton-line"></div>
-                <div class="skeleton-box skeleton-condimage"></div>
-                <div class="skeleton-line skeleton-tmax"></div>
-                <div class="skeleton-line skeleton-tmin"></div>
-            </div>
-
-            <div class="daycontainer skeleton-item skeleton-item-forecast">
-                <div class="item time skeleton-head skeleton-time skeleton-line"></div>
-                <div class="skeleton-box skeleton-condimage"></div>
-                <div class="skeleton-line skeleton-tmax"></div>
-                <div class="skeleton-line skeleton-tmin"></div>
-            </div>
-        </div>
+        <div class="maincontainer"></div>
 
         <script src="suncalc_v1.9.0.js" defer></script>
         <script src="config.js" defer></script>

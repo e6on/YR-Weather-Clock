@@ -52,7 +52,7 @@ const APP_CONFIG = {
     // --- Clock Widget ---
     CLOCK: {
         HOLIDAY_API_URL: 'https://xn--riigiphad-v9a.ee/et/koik?output=json',
-        CORS_PROXY_URL: 'https://corsproxy.io/?',
+        CORS_PROXY_URL: 'http://192.168.168.87:3000/',
         // Moon settings
         MOON_DIAMETER: 70,
         // Special events override public holidays.

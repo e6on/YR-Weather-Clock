@@ -9,7 +9,9 @@
     </head>
 
     <body>
-        <div id="timedate">
+        <!-- The .clock-skeleton class will be removed by clock.js when content is ready -->
+        <div id="timedate" class="clock-skeleton">
+            <!-- Real Content (initially empty, populated by JS) -->
             <div id="day" class="day"></div>
             <div id="clock">
                 <div id="time"></div>
@@ -22,6 +24,14 @@
                 <div id="sunrisetime"></div>
                 <img id="sunseticon" src="./images/common/sunset.svg" alt="sunset" />
                 <div id="sunsettime"></div>
+            </div>
+
+            <!-- Skeleton Loader Structure -->
+            <div class="skeleton-container">
+                <div class="skeleton-line" style="width: 220px; height: 35px; margin-bottom: 2px;"></div>
+                <div class="skeleton-line" style="width: 300px; height: 90px;"></div>
+                <div class="skeleton-line" style="width: 250px; height: 35px; margin-bottom: 15px;"></div>
+                <div class="skeleton-box" style="width: 240px; height: 70px;"></div>
             </div>
         </div>
 

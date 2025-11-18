@@ -15,6 +15,9 @@
     --sun-icon-size: 50px;
     --sun-moon-height: 70px;
     --text-shadow-default: 2px 2px 4px rgba(0, 0, 0, 0.9);
+
+    --skeleton-bg-color: #333;
+    --skeleton-highlight-color: #444;
 }
 
 body {
@@ -108,6 +111,25 @@ body {
     /* This provides space between the day and the clock */
 }
 
+/* Style for the holiday fetch error indicator */
+.day.holiday-fetch-failed {
+    position: relative;
+    /* Needed for pseudo-element positioning */
+}
+
+.day.holiday-fetch-failed::after {
+    content: '⚠️';
+    /* Warning emoji as the indicator */
+    position: absolute;
+    right: -30px;
+    /* Position it to the right of the day element */
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: var(--font-size-xsmall);
+    text-shadow: none;
+    /* Remove the default text shadow for clarity */
+}
+
 #date {
     font-size: var(--font-size-normal);
     color: var(--text-color-primary);
@@ -180,4 +202,80 @@ body {
     100% {
         transform: translateX(-100%);
     }
+}
+
+/* --- Skeleton Loader Styles for Clock --- */
+
+/* Group the real content elements for transitioning */
+#day,
+#clock,
+#date,
+#sunmoon {
+    transition: opacity 0.5s ease-in-out;
+}
+
+/* The container for the skeleton placeholders */
+.skeleton-container {
+    /* It's hidden by default because the parent lacks the .clock-skeleton class */
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    transition: opacity 0.5s ease-in-out;
+}
+
+/* When the main container has .clock-skeleton, hide real content and show skeleton */
+.clock-skeleton .skeleton-container {
+    display: flex;
+    opacity: 1;
+}
+
+.clock-skeleton #day,
+.clock-skeleton #clock,
+.clock-skeleton #date,
+.clock-skeleton #sunmoon {
+    opacity: 0;
+    visibility: hidden;
+}
+
+/* Base styles for all skeleton placeholder elements */
+.clock-skeleton .skeleton-box,
+.clock-skeleton .skeleton-line {
+    background-color: var(--skeleton-bg-color);
+    border-radius: 4px;
+    opacity: 0.7;
+    animation: pulse-dark 1.8s infinite ease-in-out;
+}
+
+/* Animation for loading indication (borrowed from weather.css for consistency) */
+@keyframes pulse-dark {
+    0% {
+        background-color: var(--skeleton-bg-color);
+    }
+
+    50% {
+        background-color: var(--skeleton-highlight-color);
+    }
+
+    100% {
+        background-color: var(--skeleton-bg-color);
+    }
+}
+
+/* Specific skeleton placeholder styles */
+.clock-skeleton .skeleton-line {
+    margin-top: 2px;
+    /* Mimic margins */
+}
+
+.clock-skeleton .skeleton-box {
+    margin-bottom: 10px;
+    /* Mimic #sunmoon margin */
+}
+
+/* Error state styling */
+.clock-error-state {
+    color: red;
+    text-align: center;
+    font-size: var(--font-size-normal);
 }

@@ -35,6 +35,11 @@ body {
     align-items: center;
     height: 100vh;
     width: 100%;
+    opacity: 1;
+    /* Explicitly start with full opacity */
+    /* Explicitly start with full opacity */
+    transition: opacity 0.6s ease-in-out;
+    /* Add a transition for the opacity property */
 }
 
 .item {
@@ -199,15 +204,26 @@ sup {
 
 /* --- Skeleton Loader Styles for Weather (Refined) --- */
 
+/* Change .weather-skeleton to be an overlay container */
 .weather-skeleton {
-    /* If the skeleton replaces the entire .maincontainer content */
+    position: absolute;
+    /* Position it over the main container */
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
     display: flex;
-    flex-direction: row;
+    /* Use space-around to distribute items across the full width */
     justify-content: space-around;
     align-items: center;
-    height: 100vh;
-    /* Match .maincontainer if needed */
-    width: 100%;
+    gap: 0px;
+    background-color: var(--bg-color);
+    /* Match body background */
+    z-index: 10;
+    /* Ensure it's on top */
+    opacity: 1;
+    transition: opacity 0.5s ease-out;
+    /* For fading out the skeleton */
 }
 
 /* Base styles for all skeleton placeholder elements */
@@ -235,8 +251,8 @@ sup {
     }
 }
 
-.weather-skeleton .skeleton-box,
-.weather-skeleton .skeleton-line {
+.weather-skeleton .skeleton-item .skeleton-box,
+.weather-skeleton .skeleton-item .skeleton-line {
     animation: pulse-dark 1.8s infinite ease-in-out;
 }
 
@@ -274,10 +290,8 @@ sup {
     /* Match real element */
     justify-self: center;
     /* Center horizontally */
-    width: 120px;
-    /* Approximate width */
-    height: 120px;
-    /* Approximate height */
+    width: 100%;
+    height: 100%;
     border-radius: 8px;
 }
 
@@ -365,6 +379,18 @@ sup {
 /* Hide current temp placeholder in forecast skeleton */
 .weather-skeleton .skeleton-item-forecast .skeleton-temp-large {
     display: none;
+}
+
+/* When the skeleton is hidden, it should fade out */
+.skeleton-hidden {
+    opacity: 0;
+    pointer-events: none;
+    /* Prevent interaction while invisible */
+}
+
+/* Helper class to hide content for fade-in effect */
+.content-hidden {
+    opacity: 0;
 }
 
 
