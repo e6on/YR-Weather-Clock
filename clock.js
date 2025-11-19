@@ -159,13 +159,10 @@ class ClockWidget {
                 this.#holidayFetchFailed = true;
             }
             this.#updateHolidayErrorIndicator();
+            this.#updateSunMoonInfo(); // Sun/moon times only need to be updated once a day.
         }
 
         const seconds = addZero(now.getSeconds());
-        if (seconds === '00') {
-            console.log("Minute changed, updating sun/moon info.");
-            this.#updateSunMoonInfo();
-        }
 
         this.#elements.time.textContent = `${addZero(now.getHours())}:${addZero(now.getMinutes())}`;
         this.#elements.seconds.textContent = seconds;
