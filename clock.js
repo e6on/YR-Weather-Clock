@@ -59,12 +59,18 @@ class ClockWidget {
             this.#holidayFetchFailed = true;
         }
 
-        // These will now run regardless of the holiday fetch result.
-        this.#updateClockDisplay(); // Start the main update loop
-        this.#updateSunMoonInfo(); // Initial call to populate sun/moon data immediately
-        this.#updateHolidayErrorIndicator(); // Show error indicator if needed
-        this.#elements.container.classList.remove('clock-skeleton');
-        console.log("Clock initialized.");
+        try {
+            // These will now run regardless of the holiday fetch result.
+            this.#updateClockDisplay(); // Start the main update loop
+            this.#updateSunMoonInfo(); // Initial call to populate sun/moon data immediately
+            this.#updateHolidayErrorIndicator(); // Show error indicator if needed
+        } catch (error) {
+            this.#showError(`Clock failed during initial display update: ${error.message}`);
+            return; // Stop further execution
+        } finally {
+            this.#elements.container.classList.remove('clock-skeleton');
+            console.log("Clock initialized or failed gracefully. Skeleton removed.");
+        }
     }
 
     #showError(message) {
@@ -199,12 +205,19 @@ class ClockWidget {
             textSpan.innerHTML = this.#currentHolidayEvent;
             dayEl.appendChild(textSpan);
 
-            Promise.resolve().then(() => {
+            // Use requestAnimationFrame to ensure dimensions are calculated after the DOM is painted.
+            // This is more reliable and idiomatic than Promise.resolve().then().
+            requestAnimationFrame(() => {
+                // Check if the element is still in the DOM, in case of rapid updates.
+                if (!textSpan.isConnected) return;
+
                 if (textSpan.scrollWidth > dayEl.clientWidth) {
                     textSpan.classList.add('scrolling-text');
                     const scrollDistance = textSpan.scrollWidth + dayEl.clientWidth;
-                    const scrollSpeed = 80; // pixels per second
-                    textSpan.style.animationDuration = `${scrollDistance / scrollSpeed}s`;
+                    const scrollSpeed = 80; // pixels per second, could be moved to config
+                    if (scrollSpeed > 0) {
+                        textSpan.style.animationDuration = `${scrollDistance / scrollSpeed}s`;
+                    }
                 }
             });
         } else {

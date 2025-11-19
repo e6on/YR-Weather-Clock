@@ -95,29 +95,34 @@ const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
  * @param {string} url - The URL to fetch.
  * @param {object} [retryOptions={}] - Options for the retry mechanism.
  * @param {number} [retryOptions.maxRetries=3] - Maximum number of retries. Defaults to 3.
- * @param {number} [retryOptions.retryDelay=1000] - Initial delay between retries in ms. This will be increased exponentially. Defaults to 1000.
+ * @param {number} [retryOptions.retryDelay=1000] - Initial delay between retries in ms. This will be increased exponentially.
+ * @param {number} [retryOptions.timeout=8000] - Timeout for each fetch attempt in ms. Defaults to 8000.
  * @param {function} [retryOptions.onRetry] - Callback function executed on each retry attempt. It receives the attempt number and total retries.
  * @returns {Promise<any>} A promise that resolves with the parsed JSON data.
  * @throws {Error} Throws an error if all fetch attempts fail.
  */
-const fetchWithRetry = async (url, { maxRetries = 3, retryDelay = 1000, onRetry = () => { } } = {}) => {
+const fetchWithRetry = async (url, { maxRetries = 3, retryDelay = 1000, timeout = 8000, onRetry = () => { } } = {}) => {
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), timeout);
+
         try {
-            const response = await fetch(url);
+            const response = await fetch(url, { signal: controller.signal });
+            clearTimeout(timeoutId); // The fetch was successful, clear the timeout
 
             // If the response is successful, parse and return the JSON.
             if (!response.ok) {
                 // For client-side errors (4xx) that are not rate-limiting, don't retry.
                 // The request is likely malformed or the resource is not found.
                 if (response.status >= 400 && response.status < 500 && response.status !== 429) {
-                    console.error(`Client error: ${response.status} ${response.statusText}. Not retrying.`);
+                    console.error(`Fetch failed with client error: ${response.status} ${response.statusText}. Not retrying.`);
                     // Throw a specific error to stop retries.
                     throw new Error(`API request failed with client error: ${response.status} ${response.statusText}`);
                 }
 
                 // For server errors (5xx) or rate limiting (429), we will retry.
                 // Create an error to be caught by the catch block below.
-                const error = new Error(`API request failed: ${response.status} ${response.statusText}`);
+                const error = new Error(`API request failed with server error: ${response.status} ${response.statusText}`);
                 error.response = response; // Attach response to the error object
                 throw error;
             }
@@ -125,7 +130,13 @@ const fetchWithRetry = async (url, { maxRetries = 3, retryDelay = 1000, onRetry 
             return await response.json(); // Success, parse and return JSON
 
         } catch (error) {
-            console.error(`Fetch attempt ${attempt}/${maxRetries} for ${url} failed:`, error.message);
+            clearTimeout(timeoutId); // Clear timeout on any error
+
+            if (error.name === 'AbortError') {
+                console.error(`Fetch attempt ${attempt}/${maxRetries} for ${url} timed out after ${timeout / 1000}s.`);
+            } else {
+                console.error(`Fetch attempt ${attempt}/${maxRetries} for ${url} failed:`, error.message);
+            }
 
             if (attempt < maxRetries) {
                 onRetry(attempt, maxRetries); // Execute the on-retry callback
@@ -133,7 +144,7 @@ const fetchWithRetry = async (url, { maxRetries = 3, retryDelay = 1000, onRetry 
                 // Exponential backoff with jitter
                 // 1. Calculate exponential delay: 1s, 2s, 4s, etc.
                 const exponentialDelay = retryDelay * Math.pow(2, attempt - 1);
-                // 2. Add jitter: a random value to prevent synchronized retries
+                // 2. Add jitter: a random value to prevent synchronized retries from multiple clients
                 const jitter = exponentialDelay * 0.2 * Math.random(); // e.g., up to 20% jitter
                 const totalDelay = exponentialDelay + jitter;
 
@@ -141,7 +152,11 @@ const fetchWithRetry = async (url, { maxRetries = 3, retryDelay = 1000, onRetry 
                 await delay(totalDelay); // Wait before the next attempt
 
             } else {
-                throw new Error(`All ${maxRetries} fetch attempts failed for ${url}. Last error: ${error.message}`);
+                const finalMessage = error.name === 'AbortError'
+                    ? `Request timed out after ${timeout / 1000}s.`
+                    : error.message;
+
+                throw new Error(`All ${maxRetries} fetch attempts failed for ${url}. Last error: ${finalMessage}`);
             }
         }
     }
