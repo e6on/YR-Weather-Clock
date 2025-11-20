@@ -43,6 +43,7 @@ const API_DURATIONS = {
 // --- Main Weather Fetching and Display Logic ---
 class WeatherWidget {
     #container;
+    #isUpdating = false; // Flag to prevent multiple concurrent updates
 
     constructor(selector) {
         this.#container = document.querySelector(selector);
@@ -97,9 +98,9 @@ class WeatherWidget {
         if (!dataBlock) return results;
 
         for (const key of keys) {
-            if (dataBlock.summary && Object.hasOwn(dataBlock.summary, key)) {
+            if (dataBlock.summary && Object.prototype.hasOwnProperty.call(dataBlock.summary, key)) {
                 results[key] = dataBlock.summary[key];
-            } else if (dataBlock.details && Object.hasOwn(dataBlock.details, key)) {
+            } else if (dataBlock.details && Object.prototype.hasOwnProperty.call(dataBlock.details, key)) {
                 results[key] = dataBlock.details[key];
             }
         }
@@ -172,7 +173,7 @@ class WeatherWidget {
                 </div>`;
     }
 
-    #createForecastDayHTML(dayData, isTodaySummary = false) {
+    #createForecastDayHTML(dayData, isTodaySummary = false, updateTime) {
         const { isoString, minTemp, maxTemp, timeBlockLabel } = dayData;
         let { symbolCode } = dayData;
 
@@ -183,9 +184,15 @@ class WeatherWidget {
         }
 
         const timeClass = isTodaySummary ? 'item time time-today-label' : 'item time';
-        const timeHTML = (isTodaySummary && timeBlockLabel)
-            ? `<div class='${timeClass}'>${timeBlockLabel}</div>`
-            : `<div class='${timeClass}'>${this.#formatDateEstonian(isoString)}</div>`;
+        let timeHTML;
+        if (isTodaySummary && timeBlockLabel) {
+            // Add the formatted update time if it's the "Today" summary block
+            const refreshIconHTML = `<img src="${APP_CONFIG.WEATHER.COMMON_IMAGE_PATH}refresh.svg" class="refresh-icon" alt="refresh" />`;
+            const updateTimeString = updateTime ? `&nbsp;${addZero(updateTime.getHours())}:${addZero(updateTime.getMinutes())}` : '';
+            timeHTML = `<div class='${timeClass}'><span class="update-time">${refreshIconHTML}${updateTimeString}</span>&nbsp;${timeBlockLabel}</div>`;
+        } else {
+            timeHTML = `<div class='${timeClass}'>${this.#formatDateEstonian(isoString)}</div>`;
+        }
 
         const conditionImage = `<img class='conditionpic' src='${IMAGE_PATH}${symbolCode}${IMAGE_EXT}' alt='${symbolCode}' />`;
         const maxTempHTML = `<div class='item tempmax'><span>${maxTemp !== null ? Math.round(maxTemp) : '--'}&deg;</span></div>`;
@@ -239,12 +246,12 @@ class WeatherWidget {
     }
 
     #renderWeather(weatherData) {
-        const { current, todaySummary, forecasts, feelsLike } = weatherData;
+        const { current, todaySummary, forecasts, feelsLike, updateTime } = weatherData;
 
         const currentWeatherHTML = this.#createCurrentWeatherHTML(current.instant, current.next1h, feelsLike);
 
         const todaySummaryHTML = todaySummary.isoString
-            ? this.#createForecastDayHTML(todaySummary, true)
+            ? this.#createForecastDayHTML(todaySummary, true, updateTime)
             : (console.warn("Could not get 6-hour forecast data for today's summary."), "");
 
         const futureForecastHTML = forecasts.map(day => {
@@ -270,16 +277,51 @@ class WeatherWidget {
             // 5. Remove the skeleton from the DOM after it has faded out
             skeletonContainer.addEventListener('transitionend', () => skeletonContainer.remove());
         }
+
+        // 6. Add click listener for manual refresh
+        const refreshButton = this.#container.querySelector('.update-time');
+        if (refreshButton) {
+            refreshButton.addEventListener('click', () => {
+                // Add a single-shot pulse class to provide immediate click feedback.
+                const refreshIcon = this.#container.querySelector('.refresh-icon');
+                if (refreshIcon) {
+                    // Ensure previous pulse class is removed, force reflow, then add it
+                    refreshIcon.classList.remove('pulse');
+                    void refreshIcon.offsetWidth;
+                    refreshIcon.classList.add('pulse');
+                    // Remove the pulse class after animation completes (one-time)
+                    refreshIcon.addEventListener('animationend', () => refreshIcon.classList.remove('pulse'), { once: true });
+                }
+
+                if (!this.#isUpdating) {
+                    this.fetchAndDisplayWeather();
+                }
+            });
+        }
+
         console.log("Weather DOM updated successfully with fade-in animation.");
     }
 
     // --- Main Fetch and Process Method ---
 
     async fetchAndDisplayWeather() {
+        if (this.#isUpdating) return;
+        this.#isUpdating = true;
+
         const now = new Date();
         const apiUrl = `${API_URL}?lat=${LATITUDE}&lon=${LONGITUDE}`;
+        const isInitialLoad = !this.#container.hasChildNodes();
 
-        this.#displaySkeletonLoader();
+        // On initial load, show skeleton. On manual refresh, make the icon spin.
+        if (isInitialLoad) {
+            this.#displaySkeletonLoader();
+        } else {
+            const refreshIcon = this.#container.querySelector('.refresh-icon');
+            if (refreshIcon) {
+                refreshIcon.classList.add('spinning');
+            }
+        }
+
         console.log(`Fetching weather data from ${apiUrl}`);
 
         try {
@@ -310,6 +352,7 @@ class WeatherWidget {
             console.log(`Processing data: Upcoming block is '${upcomingBlock.labelKey}'. Feels like temp: ${feelsLikeTemp === null ? 'N/A' : feelsLikeTemp + '°C'}.`);
 
             const weatherData = {
+                updateTime: now,
                 feelsLike: feelsLikeTemp,
                 current: {
                     instant: this.#extractValues(mostRecentForecast, API_DURATIONS.INSTANT, [API_KEYS.AIR_TEMP, API_KEYS.WIND_SPEED]),
@@ -343,6 +386,13 @@ class WeatherWidget {
         } catch (error) {
             console.error("All retries failed for weather data.", error);
             this.#updateStatus(`ERROR: ${error.message}`, true);
+        } finally {
+            // After the fetch and render are complete, find the icon again and remove the class.
+            const refreshIcon = this.#container.querySelector('.refresh-icon');
+            if (refreshIcon) {
+                refreshIcon.classList.remove('spinning');
+            }
+            this.#isUpdating = false;
         }
     }
 }

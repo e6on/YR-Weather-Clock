@@ -1,8 +1,27 @@
 // --- Configuration & Constants ---
-// Configuration is now loaded from config.js via the global APP_CONFIG object.
-const COMMON_IMAGE_PATH = APP_CONFIG.WEATHER.COMMON_IMAGE_PATH;
-const CLOCK_CONFIG = APP_CONFIG.CLOCK;
-const LOCATION_CONFIG = APP_CONFIG.LOCATION;
+// Configuration is normally loaded from config.js via the global APP_CONFIG object.
+// Avoid accessing `APP_CONFIG` directly at parse time to prevent a ReferenceError
+// (which would stop script evaluation and leave the skeleton in place).
+let COMMON_IMAGE_PATH;
+let CLOCK_CONFIG;
+let LOCATION_CONFIG;
+
+if (typeof APP_CONFIG !== 'undefined') {
+    COMMON_IMAGE_PATH = APP_CONFIG.WEATHER && APP_CONFIG.WEATHER.COMMON_IMAGE_PATH ? APP_CONFIG.WEATHER.COMMON_IMAGE_PATH : './images/common/';
+    CLOCK_CONFIG = APP_CONFIG.CLOCK || {};
+    LOCATION_CONFIG = APP_CONFIG.LOCATION || { LATITUDE: 0, LONGITUDE: 0 };
+} else {
+    console.error('APP_CONFIG is not defined. Clock will run with conservative defaults.');
+    COMMON_IMAGE_PATH = './images/common/';
+    CLOCK_CONFIG = {
+        MOON_DIAMETER: 60,
+        CORS_PROXY_URL: '',
+        HOLIDAY_API_URL: '',
+        SPECIAL_EVENTS: [],
+        ANNIVERSARY_FORMAT: null
+    };
+    LOCATION_CONFIG = { LATITUDE: 0, LONGITUDE: 0 };
+}
 
 class ClockWidget {
     // Private fields for state and DOM elements
@@ -17,6 +36,8 @@ class ClockWidget {
         if (!container) {
             throw new Error(`Clock container with selector "${containerSelector}" not found.`);
         }
+
+        this.#createContentStructure(container);
 
         // Cache all required elements within the container
         this.#elements = {
@@ -41,9 +62,29 @@ class ClockWidget {
 
     async init() {
         console.log("Initializing clock...");
+        this.#displaySkeletonLoader();
 
-        if (typeof SunCalc === 'undefined' || typeof drawPlanetPhase === 'undefined') {
-            this.#showError("Initialization Error: Required libraries (SunCalc, drawPlanetPhase) not loaded.");
+        // Run startup diagnostics to detect missing upstream scripts or globals.
+        const missing = [];
+        const requiredGlobals = {
+            'SunCalc': typeof SunCalc !== 'undefined',
+            'drawPlanetPhase': typeof drawPlanetPhase !== 'undefined',
+            'fetchWithRetry': typeof fetchWithRetry !== 'undefined',
+            'addZero': typeof addZero !== 'undefined',
+            'getLocalDateString': typeof getLocalDateString !== 'undefined',
+            'MS_IN_SECOND': typeof MS_IN_SECOND !== 'undefined'
+        };
+
+        for (const [name, present] of Object.entries(requiredGlobals)) {
+            if (!present) missing.push(name);
+        }
+
+        if (missing.length > 0) {
+            const msg = `Initialization Error: Missing required globals/scripts: ${missing.join(', ')}.`;
+            console.error(msg);
+            // Provide actionable hint for debugging
+            const hint = 'Ensure `config.js` and `utils.js` are included before `clock.js`, and that `suncalc`/`moon.js` loaded successfully.';
+            this.#showError(`${msg} ${hint}`);
             return;
         }
 
@@ -68,14 +109,49 @@ class ClockWidget {
             this.#showError(`Clock failed during initial display update: ${error.message}`);
             return; // Stop further execution
         } finally {
-            this.#elements.container.classList.remove('clock-skeleton');
+            this.#transitionFromSkeletonToContent();
             console.log("Clock initialized or failed gracefully. Skeleton removed.");
         }
     }
 
+    #createContentStructure(container) {
+        container.innerHTML = `
+            <!-- Real Content (initially empty, populated by JS) -->
+            <div id="day" class="day"></div>
+            <div id="clock">
+                <div id="time"></div>
+                <div id="seconds"></div>
+            </div>
+            <div id="date"></div>
+            <div id="sunmoon">
+                <div id="moon"></div>
+                <img id="sunriseicon" src="./images/common/sunrise.svg" alt="sunrise" />
+                <div id="sunrisetime"></div>
+                <img id="sunseticon" src="./images/common/sunset.svg" alt="sunset" />
+                <div id="sunsettime"></div>
+            </div>
+        `;
+    }
+
+    #displaySkeletonLoader() {
+        this.#elements.container.classList.add('content-hidden');
+
+        const skeletonHTML = `
+            <div class="skeleton-line" style="width: 220px; height: 35px; margin-bottom: 2px;"></div>
+            <div class="skeleton-line" style="width: 300px; height: 90px;"></div>
+            <div class="skeleton-line" style="width: 250px; height: 35px; margin-bottom: 15px;"></div>
+            <div class="skeleton-box" style="width: 240px; height: 70px;"></div>
+        `;
+
+        const skeletonContainer = document.createElement('div');
+        skeletonContainer.className = 'clock-skeleton';
+        skeletonContainer.innerHTML = skeletonHTML;
+        document.body.appendChild(skeletonContainer);
+    }
+
     #showError(message) {
         console.error(message);
-        this.#elements.container.classList.remove('clock-skeleton');
+        this.#transitionFromSkeletonToContent(); // Hide skeleton, show error
         this.#elements.container.innerHTML = `<div class="clock-error-state">${message}</div>`;
     }
 
@@ -221,6 +297,18 @@ class ClockWidget {
             dayEl.textContent = dayName;
         }
     }
+
+    #transitionFromSkeletonToContent() {
+        const skeletonContainer = document.querySelector('.clock-skeleton');
+
+        // Fade the main content IN
+        this.#elements.container.classList.remove('content-hidden');
+
+        if (skeletonContainer) {
+            skeletonContainer.classList.add('skeleton-hidden');
+            skeletonContainer.addEventListener('transitionend', () => skeletonContainer.remove());
+        }
+    }
 }
 
 // --- Initialization ---
@@ -233,5 +321,25 @@ try {
     // Display a critical error if the widget couldn't even be created.
     const container = document.getElementById('timedate') || document.body;
     container.innerHTML = `<div class="clock-error-state">${error.message}</div>`;
-    container.classList.remove('clock-skeleton');
+    const skeleton = document.querySelector('.clock-skeleton');
+    if (skeleton) skeleton.remove();
 }
+
+// Failsafe: if for any reason scripts fail to run or initialization hangs,
+// remove the skeleton after a timeout so the UI doesn't remain blocked forever.
+setTimeout(() => {
+    const skeleton = document.querySelector('.clock-skeleton');
+    if (skeleton) {
+        console.warn('Clock skeleton timeout reached — removing skeleton to avoid infinite loader.');
+        skeleton.remove();
+
+        const container = document.getElementById('timedate');
+        if (container && !container.querySelector('.clock-error-state') && !container.querySelector('.clock-failsafe')) {
+            const msg = document.createElement('div');
+            msg.className = 'clock-failsafe';
+            msg.textContent = 'Initialization timed out — showing best-effort clock. See console for details.';
+            container.insertBefore(msg, container.firstChild);
+            container.classList.remove('content-hidden'); // Make sure the container is visible
+        }
+    }
+}, 10000);

@@ -206,36 +206,32 @@ body {
 
 /* --- Skeleton Loader Styles for Clock --- */
 
-/* Group the real content elements for transitioning */
-#day,
-#clock,
-#date,
-#sunmoon {
-    transition: opacity 0.5s ease-in-out;
+/* Hide the main content container initially */
+#timedate.content-hidden {
+    opacity: 0;
 }
 
-/* The container for the skeleton placeholders */
-.skeleton-container {
-    /* It's hidden by default because the parent lacks the .clock-skeleton class */
-    display: none;
+/* The skeleton is a separate, absolutely positioned overlay */
+.clock-skeleton {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
+    background-color: var(--bg-color);
+    z-index: 10;
     transition: opacity 0.5s ease-in-out;
 }
 
-/* When the main container has .clock-skeleton, hide real content and show skeleton */
-.clock-skeleton .skeleton-container {
-    display: flex;
-    opacity: 1;
-}
-
-.clock-skeleton #day,
-.clock-skeleton #clock,
-.clock-skeleton #date,
-.clock-skeleton #sunmoon {
+/* Class to fade out the skeleton */
+.clock-skeleton.skeleton-hidden {
     opacity: 0;
-    visibility: hidden;
+    pointer-events: none;
+    /* Prevent interaction during fade-out */
 }
 
 /* Base styles for all skeleton placeholder elements */
@@ -278,4 +274,15 @@ body {
     color: red;
     text-align: center;
     font-size: var(--font-size-normal);
+}
+
+/* Failsafe message styling — shown when initialization times out */
+.clock-failsafe {
+    color: var(--text-color-accent);
+    text-align: center;
+    font-size: var(--font-size-small);
+    background: rgba(255, 255, 255, 0.03);
+    padding: 8px 12px;
+    border-radius: 6px;
+    margin-top: 12px;
 }

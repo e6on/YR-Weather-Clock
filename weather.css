@@ -149,6 +149,73 @@ body {
     color: var(--text-color-weather);
 }
 
+/* Style for the update timestamp */
+.update-time {
+    display: inline-flex;
+    align-items: center;
+    cursor: pointer;
+}
+
+.time .update-time {
+    font-size: 20px;
+    color: var(--text-color-weather);
+    opacity: 0.7;
+}
+
+.refresh-icon {
+    height: 18px;
+    /* Slightly smaller than the font size */
+    width: 18px;
+    display: inline-block;
+    transform-origin: center center;
+    will-change: transform, opacity;
+}
+
+/* Animation for the pulsing refresh icon */
+@keyframes pulse {
+    0% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.4;
+    }
+
+    100% {
+        opacity: 1;
+    }
+}
+
+/* Class to apply the loading animation */
+.refresh-icon.spinning {
+    /* Override the parent's opacity during animation for full effect */
+    opacity: 1 !important;
+    animation: pulse 2s ease-in-out infinite;
+}
+
+/* Single-shot pulse (used for click feedback) */
+@keyframes pulse-scale {
+    0% {
+        opacity: 1;
+        transform: scale(1);
+    }
+
+    50% {
+        opacity: 0.35;
+        transform: scale(1.35);
+    }
+
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.refresh-icon.pulse {
+    opacity: 1 !important;
+    animation: pulse-scale 1s cubic-bezier(.2, .9, .3, 1) 1;
+}
+
 sup {
     font-size: 15px;
 }
@@ -172,7 +239,7 @@ sup {
     grid-area: tmax;
     /* Span the second and third columns */
     align-items: flex-end;
-    justify-content: center;
+    justify-content: right;
     /* Center the span horizontally */
     font-size: 40px;
     color: var(--text-color-weather);
@@ -182,7 +249,7 @@ sup {
     grid-area: tmin;
     /* Span the second and third columns */
     align-items: flex-start;
-    justify-content: center;
+    justify-content: right;
     /* Center the span horizontally */
     font-size: 40px;
     color: var(--text-color-forecast-min);
