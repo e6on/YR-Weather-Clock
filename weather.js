@@ -140,11 +140,15 @@ class WeatherWidget {
 
     // --- HTML Generation Methods ---
 
-    #createCurrentWeatherHTML(instantData, next1hData, feelsLikeTemp) {
+    #createCurrentWeatherHTML(instantData, next1hData, feelsLikeTemp, updateTime) {
         const temp = instantData?.air_temperature;
         const windSpeed = instantData?.wind_speed;
         const symbolCode = next1hData?.symbol_code || 'default';
         const precipitationProb = next1hData?.probability_of_precipitation;
+
+        const refreshIconHTML = `<img src="${APP_CONFIG.WEATHER.COMMON_IMAGE_PATH}refresh.svg" class="refresh-icon" alt="refresh" />`;
+        const updateTimeString = updateTime ? `&nbsp;${addZero(updateTime.getHours())}:${addZero(updateTime.getMinutes())}` : '';
+        const timeHTML = `<div class='item time time-today-label'><span class="update-time">${refreshIconHTML}${updateTimeString}</span></div>`;
 
         const conditionImage = `<img class='conditionpic' src='${IMAGE_PATH}${symbolCode}${IMAGE_EXT}' alt='${symbolCode}' />`;
         const mainTemperatureHTML = this.#formatTemperatureHTML(temp);
@@ -153,10 +157,7 @@ class WeatherWidget {
             ? `<div class="feels-like-temp"><img src="${APP_CONFIG.WEATHER.FEELS_LIKE_ICON_PATH}" alt="feels like" class="feels-like-icon" /><span>${feelsLikeTemp}&deg;</span></div>`
             : "";
 
-        let windIcon = 'wind';
-        if (windSpeed !== undefined && windSpeed >= 0 && windSpeed < 13) {
-            windIcon = `wind-${Math.floor(windSpeed)}`;
-        }
+        const windIcon = (windSpeed !== undefined && windSpeed >= 0 && windSpeed < 13) ? `wind-${Math.floor(windSpeed)}` : 'wind';
         const windHTML = `<div class="item"><img class='icon image1' src='${APP_CONFIG.WEATHER.COMMON_IMAGE_PATH}${windIcon}.svg' alt='wind' /><div>${Math.round(windSpeed) ?? '--'}<sup>m/s</sup></div></div>`;
 
         const thunderIcon = (symbolCode.includes("thunder"))
@@ -164,7 +165,7 @@ class WeatherWidget {
             : "";
         const precipitationHTML = `<div class="item"><div class='parent'><img class='icon' src='${APP_CONFIG.WEATHER.COMMON_IMAGE_PATH}umbrella.svg' alt='umbrella' />${thunderIcon}</div><div>${precipitationProb ?? '--'}<sup>%</sup></div></div>`;
 
-        const temperatureBlockHTML = `<div class="temperature-block">${mainTemperatureHTML}${feelsLikeHTML}</div>`;
+        const temperatureBlockHTML = `<div class="temperature-block">${timeHTML}${mainTemperatureHTML}${feelsLikeHTML}</div>`;
 
         return `<div class='daycontainer'>
                     <div class='item propscontainer'>${windHTML}${precipitationHTML}</div>
@@ -186,10 +187,8 @@ class WeatherWidget {
         const timeClass = isTodaySummary ? 'item time time-today-label' : 'item time';
         let timeHTML;
         if (isTodaySummary && timeBlockLabel) {
-            // Add the formatted update time if it's the "Today" summary block
-            const refreshIconHTML = `<img src="${APP_CONFIG.WEATHER.COMMON_IMAGE_PATH}refresh.svg" class="refresh-icon" alt="refresh" />`;
-            const updateTimeString = updateTime ? `&nbsp;${addZero(updateTime.getHours())}:${addZero(updateTime.getMinutes())}` : '';
-            timeHTML = `<div class='${timeClass}'><span class="update-time">${refreshIconHTML}${updateTimeString}</span>&nbsp;${timeBlockLabel}</div>`;
+            // For the "Today" summary block, just show the time block label (e.g., "Afternoon")
+            timeHTML = `<div class='${timeClass}'>${timeBlockLabel}</div>`;
         } else {
             timeHTML = `<div class='${timeClass}'>${this.#formatDateEstonian(isoString)}</div>`;
         }
@@ -248,7 +247,7 @@ class WeatherWidget {
     #renderWeather(weatherData) {
         const { current, todaySummary, forecasts, feelsLike, updateTime } = weatherData;
 
-        const currentWeatherHTML = this.#createCurrentWeatherHTML(current.instant, current.next1h, feelsLike);
+        const currentWeatherHTML = this.#createCurrentWeatherHTML(current.instant, current.next1h, feelsLike, updateTime);
 
         const todaySummaryHTML = todaySummary.isoString
             ? this.#createForecastDayHTML(todaySummary, true, updateTime)
