@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Weather Meteogram</title>
+        <style>
+            body {
+                margin: 0;
+                padding: 0;
+                background-color: #000000;
+                /* Match dark mode of the image */
+                overflow: hidden;
+                /* Prevent scrollbars from appearing */
+            }
+        </style>
+    </head>
+
+    <body>
+        <img id="meteogram" src="https://www.yr.no/en/content/2-6698303/meteogram.svg?mode=dark" alt="Weather meteogram"
+            loading="eager">
+
+        <script defer>
+            const meteogramImage = document.getElementById('meteogram');
+            const imageUrl = "https://www.yr.no/en/content/2-6698303/meteogram.svg?mode=dark";
+            const refreshInterval = 3600000; // 1 hour in milliseconds
+
+            // Refresh the image every hour without reloading the whole page
+            setInterval(() => {
+                // By adding a timestamp, we prevent the browser from showing a cached version of the image.
+                meteogramImage.src = `${imageUrl}&t=${new Date().getTime()}`;
+            }, refreshInterval);
+        </script>
+    </body>
+
+</html>
