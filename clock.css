@@ -1,11 +1,8 @@
 /* --- CSS Variables --- */
 :root {
-    --bg-color: #000;
-    --text-color-primary: white;
     --text-color-accent: #F0E68C;
     --event-color: #FF00FF;
 
-    --font-family-main: "Helvetica Neue", Helvetica, "Open Sans", Arial, sans-serif;
     --font-size-large: 90px;
     --font-size-medium: 50px;
     --font-size-normal: 35px;
@@ -15,19 +12,10 @@
     --sun-icon-size: 50px;
     --sun-moon-height: 70px;
     --text-shadow-default: 2px 2px 4px rgba(0, 0, 0, 0.9);
-
-    --skeleton-bg-color: #333;
-    --skeleton-highlight-color: #444;
 }
 
 body {
-    background-color: var(--bg-color);
-    color: var(--text-color-primary);
-    font-family: var(--font-family-main);
-    overflow: hidden;
-    margin: 0;
     text-shadow: var(--text-shadow-default);
-    /* Reset default body margin */
 }
 
 #timedate {
@@ -244,19 +232,6 @@ body {
 }
 
 /* Animation for loading indication (borrowed from weather.css for consistency) */
-@keyframes pulse-dark {
-    0% {
-        background-color: var(--skeleton-bg-color);
-    }
-
-    50% {
-        background-color: var(--skeleton-highlight-color);
-    }
-
-    100% {
-        background-color: var(--skeleton-bg-color);
-    }
-}
 
 /* Specific skeleton placeholder styles */
 .clock-skeleton .skeleton-line {

@@ -1,29 +1,18 @@
 /* --- CSS Variables --- */
 :root {
-    --bg-color: #000;
     --text-shadow-default: 0 0 15px rgba(0, 0, 0, 1), 0 0 35px rgba(0, 0, 0, 0.9);
-    --text-color-primary: white;
     --text-color-weather: #00FFFF;
     /* Cyan */
     --text-color-forecast-min: #7FFFD4;
     /* Aquamarine */
 
-    --font-family-main: "Helvetica Neue", Helvetica, "Open Sans", Arial, sans-serif;
     --font-size-base: 35px;
-
-    --skeleton-bg-color: #333;
-    --skeleton-highlight-color: #444;
 }
 
 body {
-    background-color: var(--bg-color);
     font-size: var(--font-size-base);
     color: var(--text-color-weather);
-    font-family: var(--font-family-main);
-    overflow: hidden;
-    margin: 0;
     text-shadow: var(--text-shadow-default);
-    /* Reset default body margin for consistency */
 }
 
 .maincontainer {
@@ -303,20 +292,6 @@ sup {
 }
 
 /* Animation for loading indication */
-@keyframes pulse-dark {
-    0% {
-        background-color: var(--skeleton-bg-color);
-    }
-
-    50% {
-        background-color: var(--skeleton-highlight-color);
-    }
-
-    /* Slightly lighter grey */
-    100% {
-        background-color: var(--skeleton-bg-color);
-    }
-}
 
 .weather-skeleton .skeleton-item .skeleton-box,
 .weather-skeleton .skeleton-item .skeleton-line {
@@ -449,16 +424,9 @@ sup {
 }
 
 /* When the skeleton is hidden, it should fade out */
-.skeleton-hidden {
+.weather-skeleton.skeleton-hidden {
     opacity: 0;
     pointer-events: none;
-    /* Prevent interaction while invisible */
 }
-
-/* Helper class to hide content for fade-in effect */
-.content-hidden {
-    opacity: 0;
-}
-
 
 /* --- End Skeleton Loader Styles --- */

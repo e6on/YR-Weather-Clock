@@ -1,27 +1,16 @@
-// --- Configuration & Constants ---
-// Configuration is normally loaded from config.js via the global APP_CONFIG object.
-// Avoid accessing `APP_CONFIG` directly at parse time to prevent a ReferenceError
-// (which would stop script evaluation and leave the skeleton in place).
-let COMMON_IMAGE_PATH;
-let CLOCK_CONFIG;
-let LOCATION_CONFIG;
+// --- Imports ---
+import { APP_CONFIG } from './config.js';
+import {
+    addZero,
+    getLocalDateString,
+    fetchWithRetry,
+    MS_IN_SECOND
+} from './utils.js';
 
-if (typeof APP_CONFIG !== 'undefined') {
-    COMMON_IMAGE_PATH = APP_CONFIG.WEATHER && APP_CONFIG.WEATHER.COMMON_IMAGE_PATH ? APP_CONFIG.WEATHER.COMMON_IMAGE_PATH : './images/common/';
-    CLOCK_CONFIG = APP_CONFIG.CLOCK || {};
-    LOCATION_CONFIG = APP_CONFIG.LOCATION || { LATITUDE: 0, LONGITUDE: 0 };
-} else {
-    console.error('APP_CONFIG is not defined. Clock will run with conservative defaults.');
-    COMMON_IMAGE_PATH = './images/common/';
-    CLOCK_CONFIG = {
-        MOON_DIAMETER: 60,
-        CORS_PROXY_URL: '',
-        HOLIDAY_API_URL: '',
-        SPECIAL_EVENTS: [],
-        ANNIVERSARY_FORMAT: null
-    };
-    LOCATION_CONFIG = { LATITUDE: 0, LONGITUDE: 0 };
-}
+// --- Configuration ---
+const COMMON_IMAGE_PATH = APP_CONFIG.WEATHER?.COMMON_IMAGE_PATH || './images/common/';
+const CLOCK_CONFIG = APP_CONFIG.CLOCK || {};
+const LOCATION_CONFIG = APP_CONFIG.LOCATION || { LATITUDE: 0, LONGITUDE: 0 };
 
 class ClockWidget {
     // Private fields for state and DOM elements
@@ -68,11 +57,7 @@ class ClockWidget {
         const missing = [];
         const requiredGlobals = {
             'SunCalc': typeof SunCalc !== 'undefined',
-            'drawPlanetPhase': typeof drawPlanetPhase !== 'undefined',
-            'fetchWithRetry': typeof fetchWithRetry !== 'undefined',
-            'addZero': typeof addZero !== 'undefined',
-            'getLocalDateString': typeof getLocalDateString !== 'undefined',
-            'MS_IN_SECOND': typeof MS_IN_SECOND !== 'undefined'
+            'drawPlanetPhase': typeof drawPlanetPhase !== 'undefined'
         };
 
         for (const [name, present] of Object.entries(requiredGlobals)) {
@@ -83,7 +68,7 @@ class ClockWidget {
             const msg = `Initialization Error: Missing required globals/scripts: ${missing.join(', ')}.`;
             console.error(msg);
             // Provide actionable hint for debugging
-            const hint = 'Ensure `config.js` and `utils.js` are included before `clock.js`, and that `suncalc`/`moon.js` loaded successfully.';
+            const hint = 'Ensure `suncalc`/`moon.js` loaded successfully.';
             this.#showError(`${msg} ${hint}`);
             return;
         }

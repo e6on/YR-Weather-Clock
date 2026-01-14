@@ -1,0 +1,40 @@
+/* --- Shared CSS Variables --- */
+:root {
+    --bg-color: #000;
+    --text-color-primary: white;
+    --font-family-main: "Helvetica Neue", Helvetica, "Open Sans", Arial, sans-serif;
+    
+    --skeleton-bg-color: #333;
+    --skeleton-highlight-color: #444;
+}
+
+/* --- Shared Base Styles --- */
+body {
+    background-color: var(--bg-color);
+    color: var(--text-color-primary);
+    font-family: var(--font-family-main);
+    overflow: hidden;
+    margin: 0;
+}
+
+/* --- Shared Animations --- */
+
+/* Pulse animation for skeleton loading */
+@keyframes pulse-dark {
+    0% { background-color: var(--skeleton-bg-color); }
+    50% { background-color: var(--skeleton-highlight-color); }
+    100% { background-color: var(--skeleton-bg-color); }
+}
+
+/* --- Shared Utility Classes --- */
+
+/* Helper class to hide content for fade-in effect */
+.content-hidden {
+    opacity: 0;
+}
+
+/* Helper class to hide skeleton for fade-out effect */
+.skeleton-hidden {
+    opacity: 0;
+    pointer-events: none;
+}

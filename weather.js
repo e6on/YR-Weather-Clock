@@ -1,5 +1,15 @@
+// --- Imports ---
+import { APP_CONFIG } from './config.js';
+import {
+    addZero,
+    getLocalDateString,
+    getFutureDateString,
+    calculateWindChill,
+    fetchWithRetry,
+    MS_IN_MINUTE
+} from './utils.js';
+
 // --- Configuration ---
-// Configuration is now loaded from config.js via the global APP_CONFIG object.
 const API_URL = APP_CONFIG.WEATHER.API_URL;
 const LATITUDE = APP_CONFIG.LOCATION.LATITUDE;
 const LONGITUDE = APP_CONFIG.LOCATION.LONGITUDE;
@@ -238,7 +248,16 @@ class WeatherWidget {
     #updateStatus(message, isError = false) {
         console.log(isError ? "Error:" : "Status:", message);
         if (isError) {
-            this.#container.classList.remove('weather-skeleton');
+            // Remove the skeleton overlay if it exists
+            const skeletonContainer = document.querySelector('.weather-skeleton');
+            if (skeletonContainer) {
+                skeletonContainer.remove();
+            }
+
+            // Ensure the main container is visible
+            this.#container.classList.remove('content-hidden');
+
+            // Display the error message
             this.#container.innerHTML = `<div style="text-align: center; padding: 20px;">${message}</div>`;
             this.#container.style.color = 'red';
         }

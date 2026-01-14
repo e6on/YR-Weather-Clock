@@ -14,7 +14,7 @@
  *    For example: `APP_CONFIG.LOCATION.LATITUDE`
  */
 
-const APP_CONFIG = {
+export const APP_CONFIG = {
     // --- Location (Used by Weather & Clock) ---
     LOCATION: {
         LATITUDE: 59.443,
