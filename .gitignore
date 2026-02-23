@@ -1,3 +1,6 @@
+# Ignore the environment file containing secrets.
+.env
+
 .vscode/*
 !.vscode/settings.json
 !.vscode/tasks.json
