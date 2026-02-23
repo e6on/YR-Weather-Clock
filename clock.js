@@ -146,7 +146,7 @@ class ClockWidget {
         const specialEvent = CLOCK_CONFIG.SPECIAL_EVENTS.find(event => event.date.substring(5) === currentMonthDay);
 
         if (specialEvent) {
-            const eventYear = new Date(specialEvent.date).getFullYear();
+            const eventYear = parseInt(specialEvent.date.substring(0, 4), 10);
             const anniversary = currentYear - eventYear;
             let eventMessage = specialEvent.message;
             const format = specialEvent.anniversaryFormat !== undefined ? specialEvent.anniversaryFormat : CLOCK_CONFIG.ANNIVERSARY_FORMAT;
