@@ -122,9 +122,13 @@ class WeatherWidget {
         let dailyMin = null;
         let dailyMax = null;
 
-        const relevantForecasts = timeseries.filter(entry =>
-            entry.time.startsWith(dayKey) && entry.data?.next_6_hours?.details
-        );
+        const relevantForecasts = timeseries.filter(entry => {
+            const localDateOfEntry = getLocalDateString(new Date(entry.time));
+            return localDateOfEntry === dayKey && entry.data?.next_6_hours?.details;
+        });
+
+        // Add this temporarily:
+        // console.log(`Min/max for ${dayKey}:`, relevantForecasts.map(e => e.time));
 
         for (const entry of relevantForecasts) {
             const { air_temperature_min, air_temperature_max } = entry.data.next_6_hours.details;
@@ -368,7 +372,8 @@ class WeatherWidget {
 
             const feelsLikeTemp = calculateWindChill(currentTemp, currentWind);
             console.log(`Processing data: Upcoming block is '${upcomingBlock.labelKey}'. Feels like temp: ${feelsLikeTemp === null ? 'N/A' : feelsLikeTemp + '°C'}.`);
-
+            
+            const todayMinMax = this.#calculateDailyMinMax(timeseries, upcomingBlockDate);
             const weatherData = {
                 updateTime: now,
                 feelsLike: feelsLikeTemp,
@@ -379,8 +384,8 @@ class WeatherWidget {
                 todaySummary: {
                     isoString: `${upcomingBlockKey}:00:00Z`,
                     timeBlockLabel: TIME_BLOCK_LABELS[upcomingBlock.labelKey] || upcomingBlock.labelKey,
-                    minTemp: this.#calculateDailyMinMax(timeseries, upcomingBlockDate).min,
-                    maxTemp: this.#calculateDailyMinMax(timeseries, upcomingBlockDate).max,
+                    minTemp: todayMinMax.min,
+                    maxTemp: todayMinMax.max,
                     symbolCode: this.#extractValues(timeMap.get(`${upcomingBlockKey}:00:00Z`), API_DURATIONS.NEXT_6_H, [API_KEYS.SYMBOL_CODE])?.symbol_code,
                 },
                 forecasts: []
@@ -390,11 +395,12 @@ class WeatherWidget {
                 const futureDate = new Date(now);
                 futureDate.setDate(now.getDate() + j);
                 const middayKey = `${getFutureDateString(futureDate, 0, 12)}:00:00Z`;
-
+                const { min: minTemp, max: maxTemp } = this.#calculateDailyMinMax(timeseries, futureDate);
+                
                 weatherData.forecasts.push({
                     isoString: middayKey,
-                    minTemp: this.#calculateDailyMinMax(timeseries, futureDate).min,
-                    maxTemp: this.#calculateDailyMinMax(timeseries, futureDate).max,
+                    minTemp,
+                    maxTemp,
                     symbolCode: this.#extractValues(timeMap.get(middayKey), API_DURATIONS.NEXT_12_H, [API_KEYS.SYMBOL_CODE])?.symbol_code,
                 });
             }
