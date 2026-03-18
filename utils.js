@@ -116,8 +116,10 @@ export const fetchWithRetry = async (url, { maxRetries = 3, retryDelay = 1000, t
                 // The request is likely malformed or the resource is not found.
                 if (response.status >= 400 && response.status < 500 && response.status !== 429) {
                     console.error(`Fetch failed with client error: ${response.status} ${response.statusText}. Not retrying.`);
-                    // Throw a specific error to stop retries.
-                    throw new Error(`API request failed with client error: ${response.status} ${response.statusText}`);
+                    // Tag the error so the catch block can detect it and skip retry logic.
+                    const clientError = new Error(`API request failed with client error: ${response.status} ${response.statusText}`);
+                    clientError.noRetry = true;
+                    throw clientError;
                 }
 
                 // For server errors (5xx) or rate limiting (429), we will retry.
@@ -131,6 +133,10 @@ export const fetchWithRetry = async (url, { maxRetries = 3, retryDelay = 1000, t
 
         } catch (error) {
             clearTimeout(timeoutId); // Clear timeout on any error
+
+            // If the error was explicitly marked as non-retryable (e.g. 4xx client errors),
+            // re-throw immediately without waiting or retrying.
+            if (error.noRetry) throw error;
 
             if (error.name === 'AbortError') {
                 console.error(`Fetch attempt ${attempt}/${maxRetries} for ${url} timed out after ${timeout / 1000}s.`);

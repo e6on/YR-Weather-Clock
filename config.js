@@ -58,7 +58,7 @@ export const APP_CONFIG = {
         // Special events override public holidays.
         SPECIAL_EVENTS: [
             {
-                date: '1984-03-18',
+                date: '1977-03-18',
                 message: 'PALJU &Otilde;NNE S&Uuml;NNIP&Auml;EVAKS!',
                 anniversaryFormat: '({years}a)' // Specific format for this event
             },

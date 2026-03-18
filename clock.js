@@ -291,7 +291,10 @@ class ClockWidget {
 
         if (skeletonContainer) {
             skeletonContainer.classList.add('skeleton-hidden');
-            skeletonContainer.addEventListener('transitionend', () => skeletonContainer.remove());
+            // Use a timeout matching the CSS transition (0.5s) as a guaranteed
+            // fallback — transitionend can silently fail to fire if the browser
+            // skips the transition (reduced-motion, timing quirks, etc.).
+            setTimeout(() => skeletonContainer.remove(), 600);
         }
     }
 }

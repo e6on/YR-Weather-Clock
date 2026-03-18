@@ -279,7 +279,7 @@ class WeatherWidget {
         const futureForecastHTML = forecasts.map(day => {
             return day.isoString
                 ? this.#createForecastDayHTML(day)
-                : `<div class="daycontainer" style="align-items: center; justify-content: center; color: #777;"><div class='item time'>${this.#formatDateEstonian(day.isoString)}</div><div>No forecast</div></div>`;
+                : `<div class="daycontainer" style="align-items: center; justify-content: center; color: #777;"><div class='item time'>--</div><div>No forecast</div></div>`;
         }).join('');
 
         // --- Animate the transition from skeleton to content ---
@@ -296,8 +296,9 @@ class WeatherWidget {
         // 4. Fade the skeleton OUT
         if (skeletonContainer) {
             skeletonContainer.classList.add('skeleton-hidden');
-            // 5. Remove the skeleton from the DOM after it has faded out
-            skeletonContainer.addEventListener('transitionend', () => skeletonContainer.remove());
+            // 5. Remove the skeleton from the DOM after the CSS fade (0.5s).
+            // Guaranteed timeout fallback — transitionend can silently fail to fire.
+            setTimeout(() => skeletonContainer.remove(), 600);
         }
 
         // 6. Add click listener for manual refresh
@@ -351,7 +352,10 @@ class WeatherWidget {
                 maxRetries: MAX_FETCH_RETRIES,
                 retryDelay: RETRY_DELAY_MS,
                 onRetry: (attempt, maxRetries) => {
-                    this.#updateStatus(`Failed to load weather. Retrying... (Attempt ${attempt + 1}/${maxRetries})`, true);
+                    // Use console.warn only — #updateStatus with isError=true would
+                    // destroy the skeleton and show an error UI even if a later
+                    // retry succeeds.
+                    console.warn(`Weather fetch failed. Retrying... (Attempt ${attempt + 1}/${maxRetries})`);
                 }
             });
 
@@ -373,7 +377,7 @@ class WeatherWidget {
             const feelsLikeTemp = calculateWindChill(currentTemp, currentWind);
             console.log(`Processing data: Upcoming block is '${upcomingBlock.labelKey}'. Feels like temp: ${feelsLikeTemp === null ? 'N/A' : feelsLikeTemp + '°C'}.`);
             
-            const todayMinMax = this.#calculateDailyMinMax(timeseries, upcomingBlockDate);
+            const upcomingBlockMinMax = this.#calculateDailyMinMax(timeseries, upcomingBlockDate);
             const weatherData = {
                 updateTime: now,
                 feelsLike: feelsLikeTemp,
@@ -384,8 +388,8 @@ class WeatherWidget {
                 todaySummary: {
                     isoString: `${upcomingBlockKey}:00:00Z`,
                     timeBlockLabel: TIME_BLOCK_LABELS[upcomingBlock.labelKey] || upcomingBlock.labelKey,
-                    minTemp: todayMinMax.min,
-                    maxTemp: todayMinMax.max,
+                    minTemp: upcomingBlockMinMax.min,
+                    maxTemp: upcomingBlockMinMax.max,
                     symbolCode: this.#extractValues(timeMap.get(`${upcomingBlockKey}:00:00Z`), API_DURATIONS.NEXT_6_H, [API_KEYS.SYMBOL_CODE])?.symbol_code,
                 },
                 forecasts: []
